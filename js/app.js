@@ -225,7 +225,12 @@
   function dialogF13() {
     var kabs = S.boot.kabupaten.map(function (k) { return k.kab; });
     U.dialog('<h2>Cetak alamat kelompok tani (F13)</h2><div class="form-grid"><div class="fld"><label for="f13-kab">Kabupaten</label><select id="f13-kab">' + kabs.map(function (k) { return '<option' + (k === S.filter.kab ? ' selected' : '') + '>' + e(k) + '</option>'; }).join('') + '</select></div>' +
-      '<div class="fld"><label for="f13-keg">Kegiatan</label><select id="f13-keg"><option>Perluasan Tanaman Tebu</option><option>Bongkar Ratoon</option></select></div></div><div class="baris"><button class="btn utama" id="f13-go">Cetak</button></div>', function (d) {
+      '<div class="fld"><label for="f13-keg">Kegiatan</label><select id="f13-keg"><option>Perluasan Tanaman Tebu</option><option>Bongkar Ratoon</option></select></div></div><div class="baris"><button class="btn utama" id="f13-go">Cetak</button><button class="btn" id="f13-xls">Unduh Excel</button></div>', function (d) {
+      $('#f13-xls', d).onclick = function () {
+        var kab = S.boot.kabBy[$('#f13-kab', d).value], keg = $('#f13-keg', d).value;
+        var daftar = S.boot.poktan.filter(function (p) { return p.kab === kab.kab && p.keg === keg; });
+        EKSPOR.excelAlamat(kab, keg, daftar).then(function () { U.tutupDialog(); U.toast('Berkas diunduh'); }, function (er) { U.toast('Gagal: ' + er.message, true); });
+      };
       $('#f13-go', d).onclick = function () {
         var kab = S.boot.kabBy[$('#f13-kab', d).value], keg = $('#f13-keg', d).value;
         var daftar = S.boot.poktan.filter(function (p) { return p.kab === kab.kab && p.keg === keg; });
@@ -665,11 +670,13 @@
     };
     var namaF = {}; FIELD.forEach(function (s) { s[1].forEach(function (f) { namaF[f[0]] = f[1]; }); });
     render('poktan', head + (val.length ? '<div class="galat">Data poktan masih memiliki ' + val.length + ' kesalahan. Perbaiki di tab Data poktan sebelum mencetak dokumen resmi.</div>' : '') +
-      '<section class="panel"><div class="panel-h"><h2>Form siap cetak (A4)</h2><button class="btn utama" id="cetak-semua">Cetak paket lengkap F00–F11</button></div>' +
-      '<p class="kecil muted" style="margin-bottom:10px">Pilih printer, atau pilih <b>Simpan sebagai PDF</b> di jendela cetak. Isian yang belum ada tercetak sebagai titik-titik.</p>' +
+      '<section class="panel"><div class="panel-h"><h2>Form siap cetak (A4)</h2><div class="baris"><button class="btn utama" id="cetak-semua">Cetak paket lengkap F00–F11</button>' +
+      '<button class="btn" id="word-semua">Unduh semua Word (.zip)</button><button class="btn" id="excel-semua">Unduh semua Excel (.xlsx)</button></div></div>' +
+      '<p class="kecil muted" style="margin-bottom:10px"><b>Cetak</b>: pilih printer atau <b>Simpan sebagai PDF</b>. <b>Word</b> dan <b>Excel</b>: berkas mengikuti template resmi dan bisa disunting sebelum dicetak. Isian yang belum ada tampil sebagai titik-titik.</p>' +
       '<div class="tbl-wrap"><table class="t"><tbody>' + FORM.DAFTAR.map(function (f) {
         var k = kosong(f[0]);
-        return '<tr><td class="mono" style="width:60px">' + f[0] + '</td><td><b>' + f[1] + '</b>' + (k.length ? '<div class="kecil" style="color:var(--warn)">Belum diisi: ' + k.map(function (x) { return namaF[x] || x; }).join(', ') + '</div>' : '') + '</td><td style="width:110px"><button class="btn kecil" data-cetak="' + f[0] + '">Cetak</button></td></tr>';
+        return '<tr><td class="mono" style="width:60px">' + f[0] + '</td><td><b>' + f[1] + '</b>' + (k.length ? '<div class="kecil" style="color:var(--warn)">Belum diisi: ' + k.map(function (x) { return namaF[x] || x; }).join(', ') + '</div>' : '') + '</td><td style="width:220px;white-space:nowrap"><button class="btn kecil" data-cetak="' + f[0] + '">Cetak</button> ' +
+          (EKSPOR.WORD[f[0]] ? '<button class="btn kecil" data-word="' + f[0] + '">Word</button>' : '') + (EKSPOR.EXCEL[f[0]] ? '<button class="btn kecil" data-excel="' + f[0] + '">Excel</button>' : '') + '</td></tr>';
       }).join('') + '</tbody></table></div></section>', function () {
       var cetak = function (kode) {
         var F = dataForm();
@@ -681,6 +688,15 @@
       };
       $$('[data-cetak]').forEach(function (bt) { bt.onclick = function () { cetak(bt.dataset.cetak); }; });
       $('#cetak-semua').onclick = function () { cetak('semua'); };
+      var proses = function (bt, kerja) {
+        var label = bt.textContent; bt.disabled = true; bt.textContent = 'Menyiapkan…';
+        kerja().then(function () { U.toast('Berkas diunduh'); }, function (er) { U.toast('Gagal membuat berkas: ' + (er && er.message || er), true); })
+          .then(function () { bt.disabled = false; bt.textContent = label; });
+      };
+      $$('[data-word]').forEach(function (bt) { bt.onclick = function () { proses(bt, function () { var F = dataForm(); return (bt.dataset.word === 'F10' ? ambilFoto(F) : Promise.resolve(F)).then(function (F) { return EKSPOR.word(bt.dataset.word, F); }); }); }; });
+      $$('[data-excel]').forEach(function (bt) { bt.onclick = function () { proses(bt, function () { return EKSPOR.excel([bt.dataset.excel], dataForm()); }); }; });
+      $('#word-semua').onclick = function () { var bt = this; proses(bt, function () { return ambilFoto(dataForm()).then(EKSPOR.wordSemua); }); };
+      $('#excel-semua').onclick = function () { var bt = this; proses(bt, function () { return EKSPOR.excel(['F00', 'F03', 'F05', 'F06', 'F07', 'F09'], dataForm()); }); };
     });
   }
 

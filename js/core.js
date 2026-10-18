@@ -34,11 +34,11 @@ var HOK = (function () {
     },
     'Bongkar Ratoon': {
       kode: 'BR', nama: 'Bongkar Ratoon', judul: 'KEGIATAN BONGKAR RATOON',
-      bantuan: 'Bantuan Biaya Bongkar Ratoon dan Pengolahan Tanah', jenis: 'Bongkar Ratoon dan Pengolahan Tanah',
-      frasa: 'Bantuan Biaya Bongkar Ratoon dan Pengolahan Tanah Kegiatan Bongkar Ratoon',
-      biaya: 'Biaya Bongkar Ratoon dan Pengolahan Tanah Kegiatan Bongkar Ratoon',
-      spk2: 'BIAYA BONGKAR RATOON DAN PENGOLAHAN TANAH', spk3: 'KEGIATAN BONGKAR RATOON TANAMAN TEBU',
-      sptjm: 'Kegiatan Bongkar Ratoon', dok3: 'BONGKAR RATOON DAN PENGOLAHAN TANAH', swadaya: 'Bongkar Ratoon'
+      bantuan: 'Bantuan Biaya Penyiapan Lahan', jenis: 'Penyiapan Lahan',
+      frasa: 'Bantuan Biaya Penyiapan Lahan Kegiatan Bongkar Ratoon',
+      biaya: 'Biaya Penyiapan Lahan Kegiatan Bongkar Ratoon',
+      spk2: 'BIAYA PENYIAPAN LAHAN', spk3: 'KEGIATAN BONGKAR RATOON TANAMAN TEBU',
+      sptjm: 'Kegiatan Bongkar Ratoon', dok3: 'PENYIAPAN LAHAN', swadaya: 'Bongkar Ratoon'
     }
   };
 
