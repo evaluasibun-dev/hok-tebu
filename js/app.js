@@ -2,6 +2,7 @@
 (function () {
   'use strict';
   var CFG = window.HOK_CONFIG || {}, e = U.esc;
+  var PROSES = {}, ANTRE = { p: Promise.resolve(), n: 0, ok: 0 };
   var S = { boot: null, detail: null, berkas: null, kotor: false, lastHash: '', filter: { kab: '', keg: '', status: '', q: '' }, hadir: null, temFilter: { kab: '', jenis: '', q: '' } };
 
   function $(sel, root) { return (root || document).querySelector(sel); }
@@ -50,17 +51,34 @@
     });
   }
 
+  var bootJalan = null;
+  function bootSah(d) { return d && d.user && Array.isArray(d.poktan) && Array.isArray(d.kabupaten) && Array.isArray(d.provinsi) && d.rekap && Array.isArray(d.temuan); }
   function pastikanBoot(paksa) {
     if (S.boot && !paksa) return Promise.resolve(true);
+    if (bootJalan) return bootJalan;
     if (!S.boot) app().innerHTML = '<div class="memuat">Memuat data…</div>';
-    return API.panggil('bootstrap').then(function (r) {
-      if (!r.ok) { if (r.kode !== 'SESI') app().innerHTML = shellKosong(galat(r) + '<p><button class="btn" onclick="location.reload()">Coba lagi</button></p>'); return false; }
-      S.boot = r.data;
-      S.boot.poktanBy = HOK.by(S.boot.poktan, 'id');
-      S.boot.kabBy = HOK.by(S.boot.kabupaten, 'kab');
-      S.boot.provBy = HOK.by(S.boot.provinsi, 'provinsi');
+    var coba = function (n) {
+      return API.panggil('bootstrap').then(function (r) {
+        if (r.ok && !bootSah(r.data)) r = n < 2 ? null : { ok: false, kode: 'FORMAT', pesan: 'Jawaban server tidak lengkap. Klik Muat ulang.' };
+        return r || coba(n + 1);
+      });
+    };
+    bootJalan = coba(0).then(function (r) {
+      bootJalan = null;
+      if (!r.ok) {
+        if (r.kode === 'SESI') return false;
+        if (!S.boot) app().innerHTML = shellKosong(galat(r) + '<p><button class="btn" onclick="location.reload()">Coba lagi</button></p>');
+        else U.toast(r.pesan, true);
+        return !!S.boot;
+      }
+      var b = r.data;
+      b.poktanBy = HOK.by(b.poktan, 'id');
+      b.kabBy = HOK.by(b.kabupaten, 'kab');
+      b.provBy = HOK.by(b.provinsi, 'provinsi');
+      S.boot = b;
       return true;
-    });
+    }, function (er) { bootJalan = null; throw er; });
+    return bootJalan;
   }
 
   // ------------------------------------------------------------------ kerangka
@@ -508,7 +526,14 @@
       });
     });
 
+    function tombolUnggah(g, s, f, accept) {
+      var st = PROSES[p.id + '|' + g + '|' + s];
+      if (st) return '<span class="btn kecil" aria-busy="true" style="opacity:.75">' + st + '</span>';
+      return '<label class="btn kecil">' + (f ? 'Ganti' : 'Unggah') + '<input type="file" accept="' + accept + '" data-grup="' + g + '" data-slot="' + e(s) + '"></label>';
+    }
+
     function gambarDok() {
+      if (!$('#dok-isi') || !S.detail || S.detail.poktan.id !== p.id || !S.berkas) return;
       var b = S.berkas, slot = HOK.SLOT, cari = function (g, s) { return b.filter(function (f) { return f.grup === g && f.nama.replace(/\.[a-z]+$/i, '') === s; })[0]; };
       var niks = d.pekerja.map(function (w) { return w.nik; });
       var ktpLain = b.filter(function (f) { return f.grup === 'ktp' && niks.indexOf(f.nama.slice(0, 16)) < 0; });
@@ -527,11 +552,11 @@
         }
         return '<div class="slot ' + (f ? 'ada' : 'kurang') + '"><div class="nm">' + e(label) + '</div><div class="ket' + (salah ? ' salah' : '') + '">' + (f ? ket : 'Belum ada berkas') + '</div><div class="act">' +
           (f ? '<button class="btn kecil" data-lihat="' + f.id + '">Lihat</button>' : '') +
-          (tulis ? '<label class="btn kecil">' + (f ? 'Ganti' : 'Unggah') + '<input type="file" accept="image/jpeg,image/png' + (g === 'ttd' || g === 'rek' ? ',application/pdf' : '') + '" data-grup="' + g + '" data-slot="' + e(s) + '"></label>' : '') +
+          (tulis ? tombolUnggah(g, s, f, 'image/jpeg,image/png' + (g === 'ttd' || g === 'rek' ? ',application/pdf' : '')) : '') +
           (f && tulis ? '<button class="btn kecil bahaya" data-hapus-f="' + f.id + '">Hapus</button>' : '') + '</div></div>';
       };
       $('#dok-isi').innerHTML =
-        '<section class="panel"><div class="panel-h"><h2>Kelengkapan dokumen</h2><span class="kecil muted">Disimpan di Google Drive: HOK_Tebu_2026 / ' + e(S.boot.kabBy[p.kab] ? S.boot.kabBy[p.kab].provinsi : '') + ' / ' + e(p.kab) + ' / ' + e(HOK.namaFolder(p)) + '</span></div>' +
+        '<section class="panel"><div class="panel-h"><h2>Kelengkapan dokumen</h2><span class="kecil muted">Disimpan di Google Drive: HOK_Tebu_2026 / ' + e(((S.boot && S.boot.kabBy) || {})[p.kab] ? S.boot.kabBy[p.kab].provinsi : '') + ' / ' + e(p.kab) + ' / ' + e(HOK.namaFolder(p)) + '</span></div>' +
         '<div style="display:flex;gap:14px;align-items:center"><span style="font-family:var(--f-disp);font-size:40px;font-weight:600">' + Math.round(ada / total * 100) + '%</span><div style="flex:1"><div class="bar" style="height:8px"><i style="width:' + (ada / total * 100) + '%"></i></div><div class="kecil muted" style="margin-top:6px">' + ada + ' dari ' + total + ' berkas · rekening ' + nRek + '/3 · foto geotag ' + nGeo + '/6 · KTP ' + nKtp + '/' + d.pekerja.length + ' · dokumen bertanda tangan ' + nTtd + '/10</div></div></div>' +
         (tulis ? '<p class="kecil muted" style="margin-top:8px">Foto dikecilkan otomatis sebelum diunggah (±400 KB). Tanggal dan koordinat foto dibaca dari kamera bila tersedia. Nama berkas dibuat otomatis sesuai aturan.</p>' : '') + '</section>' +
         '<section class="panel"><div class="panel-h"><h2>Foto geotag (0%, 50%, 100%)</h2><span class="kecil muted">lahan yang sama, koordinat dan waktu terlihat</span></div><div class="slot-grid">' + slot.geo.map(function (s) { return kartu('geo', s[0], s[1]); }).join('') + '</div></section>' +
@@ -540,7 +565,7 @@
         (d.pekerja.length ? '<div class="slot-grid">' + d.pekerja.map(function (w) {
           var f = b.filter(function (x) { return x.grup === 'ktp' && x.nama.indexOf(w.nik + '_') === 0; })[0];
           return '<div class="slot ' + (f ? 'ada' : 'kurang') + '"><div class="nm">' + e(w.nama) + '</div><div class="ket mono">' + e(nikSamar(w.nik)) + '</div><div class="ket">' + (f ? 'KTP ada' : 'Belum ada KTP') + '</div><div class="act">' +
-            (f ? '<button class="btn kecil" data-lihat="' + f.id + '">Lihat</button>' : '') + (tulis ? '<label class="btn kecil">' + (f ? 'Ganti' : 'Unggah') + '<input type="file" accept="image/jpeg,image/png" data-grup="ktp" data-slot="' + e(w.nik) + '"></label>' : '') +
+            (f ? '<button class="btn kecil" data-lihat="' + f.id + '">Lihat</button>' : '') + (tulis ? tombolUnggah('ktp', w.nik, f, 'image/jpeg,image/png') : '') +
             (f && tulis ? '<button class="btn kecil bahaya" data-hapus-f="' + f.id + '">Hapus</button>' : '') + '</div></div>';
         }).join('') + '</div>' : '<div class="kosong">Belum ada pekerja di daftar hadir.</div>') +
         (ktpLain.length ? '<div class="galat" style="margin-top:10px">' + ktpLain.length + ' berkas KTP tidak cocok dengan NIK di daftar hadir: ' + ktpLain.map(function (f) { return e(f.nama); }).join(', ') + '</div>' : '') + '</section>' +
@@ -552,31 +577,42 @@
           API.panggil('berkas.hapus', { fileId: bt.dataset.hapusF }).then(function (r) { if (!r.ok) { U.toast(r.pesan, true); return; } S.berkas = r.data.berkas; gambarDok(); U.toast('Berkas dihapus'); pastikanBoot(true); });
         };
       });
-      $$('#dok-isi input[type=file]').forEach(function (inp) { inp.onchange = function () { if (inp.files[0]) unggah(inp.files[0], inp.dataset.grup, inp.dataset.slot, inp); }; });
+      $$('#dok-isi input[type=file]').forEach(function (inp) { inp.onchange = function () { if (inp.files[0]) unggah(inp.files[0], inp.dataset.grup, inp.dataset.slot); }; });
     }
 
-    function unggah(file, grup, slot, inp) {
-      var label = inp.closest('label'); label.firstChild.textContent = 'Mengunggah…';
-      var mime = file.type, maks = 10 * 1024 * 1024;
-      if (['image/jpeg', 'image/png', 'application/pdf'].indexOf(mime) < 0) { U.toast('Format harus JPG, PNG atau PDF', true); gambarDok(); return; }
-      if (file.size > maks * 3) { U.toast('Berkas terlalu besar (maks. 10 MB setelah dikecilkan)', true); gambarDok(); return; }
-      var siap;
-      if (mime === 'application/pdf') {
-        if (file.size > maks) { U.toast('PDF maksimal 10 MB', true); gambarDok(); return; }
-        siap = U.bacaBuffer(file).then(function (buf) { return { mime: mime, data: U.keBase64(buf), meta: null }; });
-      } else {
-        siap = U.bacaBuffer(file).then(function (buf) {
-          var meta = mime === 'image/jpeg' ? U.exif(buf) : null;
-          return U.kompres(file).then(function (b64) { return { mime: 'image/jpeg', data: b64, meta: meta }; });
-        });
-      }
-      siap.then(function (x) {
-        if (x.meta) x.meta.asli = file.name.slice(0, 80);
-        return API.panggil('berkas.unggah', { id_poktan: p.id, grup: grup, slot: slot, mime: x.mime, data: x.data, meta: x.meta || { asli: file.name.slice(0, 80) } });
-      }).then(function (r) {
-        if (!r.ok) { U.toast(r.pesan, true); gambarDok(); return; }
-        S.berkas = r.data.berkas; gambarDok(); U.toast('Berkas tersimpan di Google Drive'); pastikanBoot(true);
-      }).catch(function (er) { U.toast('Gagal mengunggah: ' + er.message, true); gambarDok(); });
+    function unggah(file, grup, slot) {
+      var mime = file.type, maks = 10 * 1024 * 1024, kunci = p.id + '|' + grup + '|' + slot;
+      if (['image/jpeg', 'image/png', 'application/pdf'].indexOf(mime) < 0) { U.toast('Format harus JPG, PNG atau PDF', true); return; }
+      if (mime === 'application/pdf' && file.size > maks) { U.toast('PDF maksimal 10 MB', true); return; }
+      if (file.size > maks * 3) { U.toast('Berkas terlalu besar (maks. 10 MB setelah dikecilkan)', true); return; }
+      if (PROSES[kunci]) return;
+      PROSES[kunci] = 'Menunggu…'; gambarDok();
+      ANTRE.n++;
+      ANTRE.p = ANTRE.p.then(function () {
+        PROSES[kunci] = 'Mengunggah…'; gambarDok();
+        var siap = mime === 'application/pdf'
+          ? U.bacaBuffer(file).then(function (buf) { return { mime: mime, data: U.keBase64(buf), meta: null }; })
+          : U.bacaBuffer(file).then(function (buf) {
+            var meta = mime === 'image/jpeg' ? U.exif(buf) : null;
+            return U.kompres(file).then(function (b64) { return { mime: 'image/jpeg', data: b64, meta: meta }; });
+          });
+        return siap.then(function (x) {
+          if (x.meta) x.meta.asli = file.name.slice(0, 80);
+          return API.panggil('berkas.unggah', { id_poktan: p.id, grup: grup, slot: slot, mime: x.mime, data: x.data, meta: x.meta || { asli: file.name.slice(0, 80) } });
+        }).then(function (r) {
+          delete PROSES[kunci];
+          if (!r.ok) { U.toast(r.pesan, true); gambarDok(); return; }
+          if (!r.data || !Array.isArray(r.data.berkas)) { U.toast('Jawaban server tidak lengkap; muat ulang tab ini untuk memeriksa berkas.', true); gambarDok(); return; }
+          if (S.detail && S.detail.poktan.id === p.id) S.berkas = r.data.berkas;
+          ANTRE.ok++; gambarDok();
+        }).catch(function (er) { delete PROSES[kunci]; U.toast('Gagal mengunggah: ' + (er && er.message || er), true); gambarDok(); });
+      }).then(function () {
+        if (--ANTRE.n === 0) {
+          if (ANTRE.ok) U.toast(ANTRE.ok + ' berkas tersimpan di Google Drive');
+          ANTRE.ok = 0;
+          pastikanBoot(true);
+        }
+      });
     }
   }
 

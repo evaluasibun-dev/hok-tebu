@@ -17,7 +17,9 @@ var API = (function () {
       });
     }
     // text/plain agar tidak ada preflight CORS; Apps Script membaca e.postData.contents
-    return fetch(CFG.API_URL, { method: 'POST', body: JSON.stringify(body), redirect: 'follow' })
+    // penanda unik per permintaan agar jawaban tidak pernah tertukar atau diambil dari cache
+    var url = CFG.API_URL + (CFG.API_URL.indexOf('?') < 0 ? '?' : '&') + 'r=' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    return fetch(url, { method: 'POST', body: JSON.stringify(body), redirect: 'follow', cache: 'no-store' })
       .then(function (r) {
         if (!r.ok) throw new Error('Server menjawab ' + r.status);
         return r.text();
