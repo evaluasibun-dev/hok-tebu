@@ -77,7 +77,7 @@ var DEMO = (function () {
     if (a[2]) a[2].nik = a[2].nik.slice(0, 15);
     if (a[0] && b[0]) {
       var ganda = Object.assign({}, a[0], { id: 'BTL-P002-W099', id_poktan: 'BTL-P002', diubah: '2026-10-02 09:00:00' });
-      var pB = poktan[1], tg = a[0].hadir.split(',').filter(function (x) { return x >= pB.mulai && x <= pB.selesai; }).slice(0, 3);
+      var pB = poktan[1], tg = a[0].hadir.split(',').filter(function (x) { return x >= (pB.mulai_olah || pB.mulai) && x <= pB.selesai; }).slice(0, 3);
       if (tg.length) { ganda.hadir = tg.join(','); pekerja.push(ganda); }
     }
     poktan[1].upah_khusus = '110000';

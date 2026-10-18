@@ -21,6 +21,7 @@ var API = (function () {
     var url = CFG.API_URL + (CFG.API_URL.indexOf('?') < 0 ? '?' : '&') + 'r=' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
     return fetch(url, { method: 'POST', body: JSON.stringify(body), redirect: 'follow', cache: 'no-store' })
       .then(function (r) {
+        if (r.status === 429) return JSON.stringify({ ok: false, kode: 'SIBUK', pesan: 'Server sedang menerima terlalu banyak permintaan. Coba lagi sebentar.' });
         if (!r.ok) throw new Error('Server menjawab ' + r.status);
         return r.text();
       })
@@ -29,9 +30,19 @@ var API = (function () {
       });
   }
 
+  // SIBUK = permintaan belum diproses sama sekali (antrean penuh), jadi aman dikirim ulang otomatis
+  function kirimUlang(body, ke) {
+    return kirim(body).then(function (res) {
+      if (res && !res.ok && res.kode === 'SIBUK' && ke < 3) {
+        return new Promise(function (ok) { setTimeout(ok, 2000 * (ke + 1) + Math.random() * 1500); }).then(function () { return kirimUlang(body, ke + 1); });
+      }
+      return res;
+    });
+  }
+
   function panggil(action, params) {
     var body = Object.assign({ action: action, token: sesi ? sesi.token : '' }, params || {});
-    return kirim(body).then(function (res) {
+    return kirimUlang(body, 0).then(function (res) {
       if (!res.ok && res.kode === 'SESI') {
         sesi = null; simpanSesi(null);
         if (location.hash !== '#/masuk') location.hash = '#/masuk';

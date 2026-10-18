@@ -189,7 +189,7 @@
     render('poktan',
       '<div class="judul"><div><h1>Kelompok tani</h1><p id="ringkas-list"></p></div><div class="baris">' +
       (bisaTambah() ? '<button class="btn" id="btn-impor">Impor dari Excel v2</button><a class="btn utama" href="#/poktan/baru">Tambah poktan</a>' : '') +
-      '<button class="btn" id="btn-f13">Cetak alamat poktan (F13)</button></div></div>' +
+      '<button class="btn" id="btn-f13">List data poktan (F13)</button></div></div>' +
       '<div class="filter">' + (kabs.length > 1 ? '<label class="sr" for="f-kab">Kabupaten</label><select id="f-kab"><option value="">Semua kabupaten</option>' + kabs.map(function (k) { return '<option' + (k === f.kab ? ' selected' : '') + '>' + e(k) + '</option>'; }).join('') + '</select>' : '') +
       '<label class="sr" for="f-keg">Kegiatan</label><select id="f-keg"><option value="">Semua kegiatan</option><option' + (f.keg === 'Perluasan Tanaman Tebu' ? ' selected' : '') + '>Perluasan Tanaman Tebu</option><option' + (f.keg === 'Bongkar Ratoon' ? ' selected' : '') + '>Bongkar Ratoon</option></select>' +
       '<label class="sr" for="f-status">Status</label><select id="f-status"><option value="">Semua status</option>' + ['Ada temuan', 'Berjalan', 'Belum mulai', 'Lengkap & sesuai'].map(function (s) { return '<option' + (s === f.status ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select>' +
@@ -224,18 +224,20 @@
 
   function dialogF13() {
     var kabs = S.boot.kabupaten.map(function (k) { return k.kab; });
-    U.dialog('<h2>Cetak alamat kelompok tani (F13)</h2><div class="form-grid"><div class="fld"><label for="f13-kab">Kabupaten</label><select id="f13-kab">' + kabs.map(function (k) { return '<option' + (k === S.filter.kab ? ' selected' : '') + '>' + e(k) + '</option>'; }).join('') + '</select></div>' +
-      '<div class="fld"><label for="f13-keg">Kegiatan</label><select id="f13-keg"><option>Perluasan Tanaman Tebu</option><option>Bongkar Ratoon</option></select></div></div><div class="baris"><button class="btn utama" id="f13-go">Cetak</button><button class="btn" id="f13-xls">Unduh Excel</button></div>', function (d) {
-      $('#f13-xls', d).onclick = function () {
+    U.dialog('<h2>List data kelompok tani penerima bantuan (F13)</h2><p class="kecil muted">Cukup satu rekapan per kabupaten untuk seluruh kelompok yang diajukan pencairan HOK. Alamat, nomor dan nama rekening mengikuti buku rekening.</p><div class="form-grid"><div class="fld"><label for="f13-kab">Kabupaten</label><select id="f13-kab">' + kabs.map(function (k) { return '<option' + (k === S.filter.kab ? ' selected' : '') + '>' + e(k) + '</option>'; }).join('') + '</select></div>' +
+      '<div class="fld"><label for="f13-keg">Kegiatan</label><select id="f13-keg"><option value="">Semua kegiatan</option><option>Perluasan Tanaman Tebu</option><option>Bongkar Ratoon</option></select></div></div><div class="baris"><button class="btn utama" id="f13-go">Cetak</button><button class="btn" id="f13-xls">Unduh Excel</button></div>', function (d) {
+      var pilih = function () {
         var kab = S.boot.kabBy[$('#f13-kab', d).value], keg = $('#f13-keg', d).value;
-        var daftar = S.boot.poktan.filter(function (p) { return p.kab === kab.kab && p.keg === keg; });
-        EKSPOR.excelAlamat(kab, keg, daftar).then(function () { U.tutupDialog(); U.toast('Berkas diunduh'); }, function (er) { U.toast('Gagal: ' + er.message, true); });
+        return { kab: kab, keg: keg, daftar: S.boot.poktan.filter(function (p) { return p.kab === kab.kab && (!keg || p.keg === keg); }) };
+      };
+      $('#f13-xls', d).onclick = function () {
+        var x = pilih();
+        EKSPOR.excelAlamat(x.kab, x.keg, x.daftar).then(function () { U.tutupDialog(); U.toast('Berkas diunduh'); }, function (er) { U.toast('Gagal: ' + er.message, true); });
       };
       $('#f13-go', d).onclick = function () {
-        var kab = S.boot.kabBy[$('#f13-kab', d).value], keg = $('#f13-keg', d).value;
-        var daftar = S.boot.poktan.filter(function (p) { return p.kab === kab.kab && p.keg === keg; });
+        var x = pilih();
         U.tutupDialog();
-        FORM.cetakHTML(FORM.F13(kab, keg, daftar), 'F13_Alamat_Poktan_' + kab.kab + '_' + HOK.kodeKeg(keg));
+        FORM.cetakHTML(FORM.F13(x.kab, x.keg, x.daftar), 'F13_List_Data_Poktan_' + x.kab.kab + (x.keg ? '_' + HOK.kodeKeg(x.keg) : ''));
       };
     });
   }
@@ -274,7 +276,7 @@
     ['A. Identitas kelompok tani', [
       ['kab', 'Kabupaten', 'kab'], ['keg', 'Kegiatan', 'keg'], ['poktan', 'Nama kelompok tani'], ['ketua', 'Nama ketua'],
       ['nik_ketua', 'NIK ketua', 'nik', '16 digit sesuai KTP'], ['jalan', 'Jalan / alamat'], ['desa', 'Desa', '', 'tanpa kata "Desa"'], ['kec', 'Kecamatan', '', 'tanpa kata "Kec."'],
-      ['bank', 'Nama bank'], ['norek', 'Nomor rekening poktan'], ['namarek', 'Nama di rekening'], ['npwp', 'NPWP (KT / ketua KT)']]],
+      ['bank', 'Nama bank'], ['norek', 'Nomor rekening poktan'], ['namarek', 'Nama di rekening'], ['npwp', 'NPWP (KT / ketua KT)', '', 'nomor sesuai kartu NPWP'], ['npwp_an', 'NPWP atas nama', 'npwp_an', 'foto NPWP diunggah di tab Dokumen & foto']]],
     ['B. Rencana dan satuan HOK', [
       ['luas', 'Luas target (ha)', 'angka', 'sesuai SK CPCL'], ['hokha_khusus', 'HOK/ha khusus (opsional)', 'angka', 'kosongkan bila mengikuti standar'],
       ['upah_khusus', 'Upah/HOK khusus (opsional)', 'angka', 'kosongkan bila mengikuti standar provinsi'], ['_tarif', 'Berlaku', 'info']]],
@@ -305,6 +307,8 @@
       if (tipe === 'kab') {
         var bisaPilih = tulis && S.boot.user.peran === 'pusat';
         inp = '<select id="fld-kab" name="kab"' + (bisaPilih ? '' : ' disabled') + '>' + S.boot.kabupaten.map(function (x) { return '<option' + (x.kab === v ? ' selected' : '') + '>' + e(x.kab) + '</option>'; }).join('') + '</select>';
+      } else if (tipe === 'npwp_an') {
+        inp = '<select id="fld-npwp_an" name="npwp_an"' + dis + '><option value="">– pilih –</option>' + HOK.NPWP_AN.map(function (x) { return '<option' + (x === v ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>';
       } else if (tipe === 'keg') {
         inp = '<select id="fld-keg" name="keg"' + dis + '>' + Object.keys(HOK.KEG).map(function (x) { return '<option' + (x === v ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>';
       } else {
@@ -561,8 +565,10 @@
       var niks = d.pekerja.map(function (w) { return w.nik; });
       var ktpLain = b.filter(function (f) { return f.grup === 'ktp' && niks.indexOf(f.nama.slice(0, 16)) < 0; });
       var hitung = function (g, n) { return Math.min(n, slot[g] ? slot[g].filter(function (s) { return cari(g, s[0]); }).length : 0); };
-      var nRek = hitung('rek', 3), nGeo = hitung('geo', 6), nTtd = hitung('ttd', 10), nKtp = d.pekerja.filter(function (w) { return b.some(function (f) { return f.grup === 'ktp' && f.nama.indexOf(w.nik + '_') === 0; }); }).length;
-      var total = 3 + 6 + 10 + d.pekerja.length, ada = nRek + nGeo + nTtd + nKtp;
+      var fKtpKetua = cari('idn', 'ktp_ketua'), nikKetua = String(p.nik_ketua || '');
+      var ktpPekerja = function (w) { return b.filter(function (f) { return f.grup === 'ktp' && f.nama.indexOf(w.nik + '_') === 0; })[0] || (fKtpKetua && w.nik === nikKetua ? fKtpKetua : null); };
+      var nIdn = hitung('idn', 2), nRek = hitung('rek', 3), nGeo = hitung('geo', 6), nTtd = hitung('ttd', 10), nKtp = d.pekerja.filter(function (w) { return !!ktpPekerja(w); }).length;
+      var total = 2 + 3 + 6 + 10 + d.pekerja.length, ada = nIdn + nRek + nGeo + nTtd + nKtp;
       var kartu = function (g, s, label) {
         var f = cari(g, s), m = f && f.meta, ket = '', salah = false;
         if (f) {
@@ -575,20 +581,25 @@
         }
         return '<div class="slot ' + (f ? 'ada' : 'kurang') + '"><div class="nm">' + e(label) + '</div><div class="ket' + (salah ? ' salah' : '') + '">' + (f ? ket : 'Belum ada berkas') + '</div><div class="act">' +
           (f ? '<button class="btn kecil" data-lihat="' + f.id + '">Lihat</button>' : '') +
-          (tulis ? tombolUnggah(g, s, f, 'image/jpeg,image/png' + (g === 'ttd' || g === 'rek' ? ',application/pdf' : '')) : '') +
+          (tulis ? tombolUnggah(g, s, f, 'image/jpeg,image/png' + (g === 'ttd' || g === 'rek' || g === 'idn' ? ',application/pdf' : '')) : '') +
           (f && tulis ? '<button class="btn kecil bahaya" data-hapus-f="' + f.id + '">Hapus</button>' : '') + '</div></div>';
       };
       $('#dok-isi').innerHTML =
         '<section class="panel"><div class="panel-h"><h2>Kelengkapan dokumen</h2><span class="kecil muted">Disimpan di Google Drive: HOK_Tebu_2026 / ' + e(((S.boot && S.boot.kabBy) || {})[p.kab] ? S.boot.kabBy[p.kab].provinsi : '') + ' / ' + e(p.kab) + ' / ' + e(HOK.namaFolder(p)) + '</span></div>' +
-        '<div style="display:flex;gap:14px;align-items:center"><span style="font-family:var(--f-disp);font-size:40px;font-weight:600">' + Math.round(ada / total * 100) + '%</span><div style="flex:1"><div class="bar" style="height:8px"><i style="width:' + (ada / total * 100) + '%"></i></div><div class="kecil muted" style="margin-top:6px">' + ada + ' dari ' + total + ' berkas · rekening ' + nRek + '/3 · foto geotag ' + nGeo + '/6 · KTP ' + nKtp + '/' + d.pekerja.length + ' · dokumen bertanda tangan ' + nTtd + '/10</div></div></div>' +
+        '<div style="display:flex;gap:14px;align-items:center"><span style="font-family:var(--f-disp);font-size:40px;font-weight:600">' + Math.round(ada / total * 100) + '%</span><div style="flex:1"><div class="bar" style="height:8px"><i style="width:' + (ada / total * 100) + '%"></i></div><div class="kecil muted" style="margin-top:6px">' + ada + ' dari ' + total + ' berkas · KTP ketua & NPWP ' + nIdn + '/2 · rekening ' + nRek + '/3 · foto geotag ' + nGeo + '/6 · KTP ' + nKtp + '/' + d.pekerja.length + ' · dokumen bertanda tangan ' + nTtd + '/10</div></div></div>' +
         (tulis ? '<p class="kecil muted" style="margin-top:8px">Foto dikecilkan otomatis sebelum diunggah (±400 KB). Tanggal dan koordinat foto dibaca dari kamera bila tersedia. Nama berkas dibuat otomatis sesuai aturan.</p>' : '') + '</section>' +
         '<section class="panel"><div class="panel-h"><h2>Foto geotag (0%, 50%, 100%)</h2><span class="kecil muted">lahan yang sama, koordinat dan waktu terlihat</span></div><div class="slot-grid">' + slot.geo.map(function (s) { return kartu('geo', s[0], s[1]); }).join('') + '</div></section>' +
-        '<section class="panel"><div class="panel-h"><h2>Buku rekening poktan</h2><span class="kecil muted">foto berwarna, tidak terpotong</span></div><div class="slot-grid">' + slot.rek.map(function (s) { return kartu('rek', s[0], s[1]); }).join('') + '</div></section>' +
+        '<section class="panel"><div class="panel-h"><h2>KTP ketua & NPWP</h2><span class="kecil muted">berwarna, tidak terpotong, tidak buram, jelas terbaca</span></div><div class="slot-grid">' +
+          kartu('idn', 'ktp_ketua', 'KTP ketua · ' + (p.ketua || 'nama ketua belum diisi')) +
+          kartu('idn', 'npwp', 'NPWP atas nama ' + (p.npwp_an || '… (pilih di Data poktan)')) + '</div>' +
+          '<p class="kecil muted" style="margin-top:8px">Bila ketua ikut bekerja dan tercatat di daftar hadir, KTP ketua otomatis dipakai juga sebagai KTP pekerja (tidak perlu unggah dua kali). NPWP boleh atas nama kelompok tani, ketua, atau pengurus lain.</p></section>' +
+        '<section class="panel"><div class="panel-h"><h2>Buku rekening poktan</h2><span class="kecil muted">atas nama kelompok · halaman depan dipakai di form F12</span></div><div class="slot-grid">' + slot.rek.map(function (s) { return kartu('rek', s[0], s[1]); }).join('') + '</div></section>' +
         '<section class="panel"><div class="panel-h"><h2>KTP pekerja</h2><span class="kecil muted">dicocokkan dengan NIK di daftar hadir</span></div>' +
         (d.pekerja.length ? '<div class="slot-grid">' + d.pekerja.map(function (w) {
-          var f = b.filter(function (x) { return x.grup === 'ktp' && x.nama.indexOf(w.nik + '_') === 0; })[0];
-          return '<div class="slot ' + (f ? 'ada' : 'kurang') + '"><div class="nm">' + e(w.nama) + '</div><div class="ket mono">' + e(nikSamar(w.nik)) + '</div><div class="ket">' + (f ? 'KTP ada' : 'Belum ada KTP') + '</div><div class="act">' +
-            (f ? '<button class="btn kecil" data-lihat="' + f.id + '">Lihat</button>' : '') + (tulis ? tombolUnggah('ktp', w.nik, f, 'image/jpeg,image/png') : '') +
+          var f = b.filter(function (x) { return x.grup === 'ktp' && x.nama.indexOf(w.nik + '_') === 0; })[0], pakaiKetua = !f && fKtpKetua && w.nik === nikKetua;
+          var g = f || (pakaiKetua ? fKtpKetua : null);
+          return '<div class="slot ' + (g ? 'ada' : 'kurang') + '"><div class="nm">' + e(w.nama) + (w.nik === nikKetua ? ' <span class="pill netral">ketua</span>' : '') + '</div><div class="ket mono">' + e(nikSamar(w.nik)) + '</div><div class="ket">' + (f ? 'KTP ada' : pakaiKetua ? 'Memakai KTP ketua' : 'Belum ada KTP') + '</div><div class="act">' +
+            (g ? '<button class="btn kecil" data-lihat="' + g.id + '">Lihat</button>' : '') + (tulis && !pakaiKetua ? tombolUnggah('ktp', w.nik, f, 'image/jpeg,image/png') : '') +
             (f && tulis ? '<button class="btn kecil bahaya" data-hapus-f="' + f.id + '">Hapus</button>' : '') + '</div></div>';
         }).join('') + '</div>' : '<div class="kosong">Belum ada pekerja di daftar hadir.</div>') +
         (ktpLain.length ? '<div class="galat" style="margin-top:10px">' + ktpLain.length + ' berkas KTP tidak cocok dengan NIK di daftar hadir: ' + ktpLain.map(function (f) { return e(f.nama); }).join(', ') + '</div>' : '') + '</section>' +
@@ -654,14 +665,28 @@
     var d = S.detail, p = d.poktan;
     return { p: p, pekerja: d.pekerja, kab: d.kabupaten, prov: d.provinsi, setting: S.boot.setting, keg: HOK.KEG[p.keg] || HOK.KEG['Perluasan Tanaman Tebu'], dok: d.dok, foto: {} };
   }
-  function ambilFoto(F) {
+  // jenis: 'F10' foto geotag, 'F12' KTP ketua + rekening halaman depan + NPWP, 'semua' keduanya
+  function ambilFoto(F, jenis) {
+    jenis = jenis || 'semua';
     var muat = S.berkas ? Promise.resolve(S.berkas) : API.panggil('berkas.daftar', { id_poktan: F.p.id }).then(function (r) { S.berkas = r.ok ? r.data.berkas : []; return S.berkas; });
     return muat.then(function (b) {
-      var geo = b.filter(function (f) { return f.grup === 'geo'; });
-      if (geo.length) U.toast('Mengambil ' + geo.length + ' foto geotag dari Drive…');
-      return Promise.all(geo.map(function (f) {
-        return API.panggil('berkas.lihat', { fileId: f.id }).then(function (r) { if (r.ok) F.foto[f.nama.replace(/\.[a-z]+$/i, '')] = { url: U.dataURL(r.data.mime, r.data.data), meta: f.meta }; });
-      }));
+      var pilih = b.filter(function (f) {
+        var nm = f.nama.replace(/\.[a-z]+$/i, '');
+        var semua = jenis === 'semua';
+        return ((jenis === 'F10' || semua) && f.grup === 'geo') ||
+          ((jenis === 'F12' || semua) && (f.grup === 'idn' || (f.grup === 'rek' && nm === 'depan'))) ||
+          ((jenis === 'F14' || semua) && (f.grup === 'ktp' || (f.grup === 'idn' && nm === 'ktp_ketua')));
+      }).filter(function (f) { return !F.foto[f.nama.replace(/\.[a-z]+$/i, '')]; });
+      if (pilih.length) U.toast('Mengambil ' + pilih.length + ' foto dari Drive…');
+      // ambil paling banyak 4 berkas sekaligus agar server tidak kebanjiran permintaan
+      var antre = pilih.slice(), kerja = function () {
+        var f = antre.shift();
+        if (!f) return Promise.resolve();
+        var nm = f.nama.replace(/\.[a-z]+$/i, '');
+        if (f.mime === 'application/pdf') { F.foto[nm] = { pdf: true, nama: f.nama }; return kerja(); }
+        return API.panggil('berkas.lihat', { fileId: f.id }).then(function (r) { if (r.ok) F.foto[nm] = { url: U.dataURL(r.data.mime, r.data.data), meta: f.meta }; }).then(kerja);
+      };
+      return Promise.all([kerja(), kerja(), kerja(), kerja()]);
     }).then(function () { return F; });
   }
   function tabCetak(head) {
@@ -672,7 +697,7 @@
     };
     var namaF = {}; FIELD.forEach(function (s) { s[1].forEach(function (f) { namaF[f[0]] = f[1]; }); });
     render('poktan', head + (val.length ? '<div class="galat">Data poktan masih memiliki ' + val.length + ' kesalahan. Perbaiki di tab Data poktan sebelum mencetak dokumen resmi.</div>' : '') +
-      '<section class="panel"><div class="panel-h"><h2>Form siap cetak (A4)</h2><div class="baris"><button class="btn utama" id="cetak-semua">Cetak paket lengkap F00–F11</button>' +
+      '<section class="panel"><div class="panel-h"><h2>Form siap cetak (A4)</h2><div class="baris"><button class="btn utama" id="cetak-semua">Cetak paket lengkap F00–F14</button>' +
       '<button class="btn" id="word-semua">Unduh semua Word (.zip)</button><button class="btn" id="excel-semua">Unduh semua Excel (.xlsx)</button></div></div>' +
       '<p class="kecil muted" style="margin-bottom:10px"><b>Cetak</b>: pilih printer atau <b>Simpan sebagai PDF</b>. <b>Word</b> dan <b>Excel</b>: berkas mengikuti template resmi dan bisa disunting sebelum dicetak. Isian yang belum ada tampil sebagai titik-titik.</p>' +
       '<div class="tbl-wrap"><table class="t"><tbody>' + FORM.DAFTAR.map(function (f) {
@@ -682,7 +707,7 @@
       }).join('') + '</tbody></table></div></section>', function () {
       var cetak = function (kode) {
         var F = dataForm();
-        var siap = (kode === 'F10' || kode === 'semua') ? ambilFoto(F) : Promise.resolve(F);
+        var siap = (kode === 'F10' || kode === 'F12' || kode === 'F14' || kode === 'semua') ? ambilFoto(F, kode) : Promise.resolve(F);
         siap.then(function (F) {
           var html = kode === 'semua' ? FORM.DAFTAR.map(function (f) { return f[2](F); }).join('') : FORM.F[kode](F);
           FORM.cetakHTML(html, (kode === 'semua' ? 'Paket_HOK' : kode) + '_' + p.id);
@@ -695,7 +720,7 @@
         kerja().then(function () { U.toast('Berkas diunduh'); }, function (er) { U.toast('Gagal membuat berkas: ' + (er && er.message || er), true); })
           .then(function () { bt.disabled = false; bt.textContent = label; });
       };
-      $$('[data-word]').forEach(function (bt) { bt.onclick = function () { proses(bt, function () { var F = dataForm(); return (bt.dataset.word === 'F10' ? ambilFoto(F) : Promise.resolve(F)).then(function (F) { return EKSPOR.word(bt.dataset.word, F); }); }); }; });
+      $$('[data-word]').forEach(function (bt) { bt.onclick = function () { proses(bt, function () { var F = dataForm(); return (['F10', 'F12', 'F14'].indexOf(bt.dataset.word) >= 0 ? ambilFoto(F, bt.dataset.word) : Promise.resolve(F)).then(function (F) { return EKSPOR.word(bt.dataset.word, F); }); }); }; });
       $$('[data-excel]').forEach(function (bt) { bt.onclick = function () { proses(bt, function () { return EKSPOR.excel([bt.dataset.excel], dataForm()); }); }; });
       $('#word-semua').onclick = function () { var bt = this; proses(bt, function () { return ambilFoto(dataForm()).then(EKSPOR.wordSemua); }); };
       $('#excel-semua').onclick = function () { var bt = this; proses(bt, function () { return EKSPOR.excel(['F00', 'F03', 'F05', 'F06', 'F07', 'F09'], dataForm()); }); };
@@ -758,6 +783,11 @@
     };
     var isi = '<div class="judul"><div><h1>Pengaturan</h1><p>Data pejabat dan satuan HOK yang tercetak di SPK, BAST, kwitansi dan form lain.</p></div></div>' +
       '<section class="panel"><div class="panel-h"><h2>Data kabupaten</h2>' + (u.peran !== 'kabupaten' ? '<div class="baris"><select id="pilih-kab">' + b.kabupaten.map(function (k) { return '<option' + (k.kab === kabPilih ? ' selected' : '') + '>' + e(k.kab) + '</option>'; }).join('') + '</select>' + (u.peran === 'pusat' ? '<button class="btn kecil" id="kab-baru">Tambah kabupaten</button>' : '') + '</div>' : '') + '</div><div id="kab-form">' + formKab(kabPilih) + '</div></section>';
+    isi += '<section class="panel"><div class="panel-h"><h2>Kode akses saya</h2></div><p class="kecil muted" style="margin-bottom:10px">Ganti kode akses Anda sendiri. Kode baru 8–24 karakter, campuran huruf dan angka (boleh tanda -). Kosongkan kode baru bila ingin dibuatkan kode acak. Setelah diganti, kode lama tidak berlaku dan perangkat lain yang masih masuk dengan kode lama akan keluar otomatis.</p>' +
+      '<form id="f-kode" class="form-grid" autocomplete="off"><div class="fld"><label for="kd-lama">Kode akses sekarang</label><input id="kd-lama" type="password" autocomplete="off"></div>' +
+      '<div class="fld"><label for="kd-baru">Kode baru (opsional)</label><input id="kd-baru" type="password" autocomplete="off" placeholder="kosongkan = dibuatkan acak"></div>' +
+      '<div class="fld"><label for="kd-ulang">Ulangi kode baru</label><input id="kd-ulang" type="password" autocomplete="off"></div></form>' +
+      '<div class="baris" style="margin-top:12px"><button class="btn utama" id="kd-simpan" type="button">Ganti kode akses saya</button></div></section>';
     if (u.peran === 'pusat') {
       isi += '<section class="panel"><div class="panel-h"><h2>Pengaturan umum</h2></div><form id="f-set" class="form-grid">' +
         [['tahun', 'Tahun anggaran'], ['no_dipa', 'Nomor DIPA'], ['tgl_dipa', 'Tanggal DIPA', 'date'], ['kpa', 'Pemberi dana (kwitansi)'], ['std_hokha', 'Standar HOK/ha'], ['batas_hari_bulan', 'Batas hari kerja per pekerja per bulan (kosong = tidak dibatasi)'], ['unit_pusat', 'Unit pengelola']].map(function (f) {
@@ -779,6 +809,16 @@
         };
       };
       pasangKab();
+      $('#kd-simpan').onclick = function () {
+        var lama = $('#kd-lama').value.trim(), baru = $('#kd-baru').value.trim(), ulang = $('#kd-ulang').value.trim();
+        if (!lama) { U.toast('Isi kode akses sekarang', true); return; }
+        if (baru !== ulang) { U.toast('Ulangan kode baru tidak sama', true); return; }
+        API.panggil('akun.gantikode', { kode_lama: lama, kode_baru: baru }).then(function (r) {
+          if (!r.ok) { U.toast(r.pesan, true); return; }
+          $('#f-kode').reset();
+          tampilKode('Kode akses Anda sudah diganti', 'Mulai sekarang masuk dengan kode ini. Kode lama tidak berlaku lagi.', r.data.kode);
+        });
+      };
       if ($('#pilih-kab')) $('#pilih-kab').onchange = function () { S.kabPengaturan = kabPilih = this.value; $('#kab-form').innerHTML = formKab(kabPilih); pasangKab(); };
       if ($('#kab-baru')) $('#kab-baru').onclick = function () {
         U.dialog('<h2>Tambah kabupaten</h2><div class="form-grid"><div class="fld"><label for="nk-kab">Nama kabupaten</label><input id="nk-kab" type="text"></div><div class="fld"><label for="nk-kode">Kode 3 huruf</label><input id="nk-kode" type="text" maxlength="4"></div>' +
@@ -801,15 +841,34 @@
     });
   }
 
+  function tampilKode(judul, ket, kode) {
+    U.dialog('<h2>' + e(judul) + '</h2><p>' + ket + '</p><p class="mono" style="font-size:24px;font-weight:700;letter-spacing:2px;user-select:all">' + e(kode) + '</p><p class="kecil muted">Catat dan simpan secara pribadi. Kode ini tidak akan ditampilkan lagi.</p>');
+  }
+
+  function dialogGantiKode(x) {
+    U.dialog('<h2>Ganti kode akses</h2><p>Untuk <b>' + e(x.nama) + '</b> (' + e(x.peran) + ', ' + e(x.kab || x.provinsi || 'semua wilayah') + '). Kode lama langsung tidak berlaku dan sesi pengguna ini berakhir.</p>' +
+      '<div class="fld"><label for="gk-kode">Kode baru (opsional)</label><input id="gk-kode" type="text" autocomplete="off" spellcheck="false" placeholder="kosongkan = dibuatkan acak"><span class="bantu">8–24 karakter, campuran huruf dan angka, boleh tanda -</span></div>' +
+      '<div class="baris" style="margin-top:12px"><button class="btn utama" id="gk-ok">Ganti kode</button></div>', function (dl) {
+      $('#gk-ok', dl).onclick = function () {
+        API.panggil('pengguna.gantikode', { id: x.id, kode: $('#gk-kode', dl).value.trim() }).then(function (r) {
+          if (!r.ok) { U.toast(r.pesan, true); return; }
+          U.tutupDialog();
+          tampilKode('Kode akses baru', 'Untuk <b>' + e(x.nama) + '</b>. Kirim secara pribadi.', r.data.kode);
+          muatPengguna();
+        });
+      };
+    });
+  }
+
   function muatPengguna() {
     var b = S.boot;
     API.panggil('pengguna.daftar').then(function (r) {
       if (!r.ok) { $('#peng-isi').innerHTML = galat(r); return; }
-      $('#peng-isi').innerHTML = '<p class="kecil muted" style="margin-bottom:10px">Kode akses hanya ditampilkan sekali saat dibuat. Bila kode hilang, nonaktifkan pengguna lama lalu buat kode baru.</p>' +
+      $('#peng-isi').innerHTML = '<p class="kecil muted" style="margin-bottom:10px">Kode akses hanya ditampilkan sekali. Bila kode hilang atau bocor, klik <b>Ganti kode</b>: kode lama langsung tidak berlaku dan sesinya berakhir.</p>' +
         '<div class="tbl-wrap"><table class="t"><thead><tr><th>Nama</th><th>Peran</th><th>Wilayah</th><th>Dibuat</th><th>Terakhir masuk</th><th>Status</th><th></th></tr></thead><tbody>' +
         r.data.pengguna.map(function (x) {
           return '<tr><td>' + e(x.nama) + '</td><td>' + e(x.peran) + '</td><td>' + e(x.kab || x.provinsi || 'Semua') + '</td><td class="kecil">' + e(x.dibuat) + '</td><td class="kecil">' + e(x.terakhir_masuk || '–') + '</td>' +
-            '<td>' + (x.aktif === 'Tidak' ? '<span class="pill netral">Nonaktif</span>' : '<span class="pill ok">Aktif</span>') + '</td><td>' + (x.id !== b.user.id ? '<button class="btn kecil" data-akt="' + x.id + '" data-v="' + (x.aktif === 'Tidak' ? '1' : '') + '">' + (x.aktif === 'Tidak' ? 'Aktifkan' : 'Nonaktifkan') + '</button>' : '<span class="kecil muted">Anda</span>') + '</td></tr>';
+            '<td>' + (x.aktif === 'Tidak' ? '<span class="pill netral">Nonaktif</span>' : '<span class="pill ok">Aktif</span>') + '</td><td style="white-space:nowrap"><button class="btn kecil" data-gk="' + x.id + '">Ganti kode</button> ' + (x.id !== b.user.id ? '<button class="btn kecil" data-akt="' + x.id + '" data-v="' + (x.aktif === 'Tidak' ? '1' : '') + '">' + (x.aktif === 'Tidak' ? 'Aktifkan' : 'Nonaktifkan') + '</button>' : '<span class="kecil muted">Anda</span>') + '</td></tr>';
         }).join('') + '</tbody></table></div>' +
         '<h3 style="margin:16px 0 8px">Buat kode akses baru</h3><div class="form-grid"><div class="fld"><label for="u-nama">Nama pengguna</label><input id="u-nama" type="text" placeholder="mis. Operator Bantul 2"></div>' +
         '<div class="fld"><label for="u-peran">Peran</label><select id="u-peran"><option value="kabupaten">Kabupaten (input)</option><option value="provinsi">Provinsi (pantau)</option><option value="pusat">Pusat (semua)</option></select></div>' +
@@ -828,6 +887,7 @@
           muatPengguna();
         });
       };
+      $$('[data-gk]').forEach(function (bt) { bt.onclick = function () { dialogGantiKode(r.data.pengguna.filter(function (x) { return x.id === bt.dataset.gk; })[0]); }; });
       $$('[data-akt]').forEach(function (bt) { bt.onclick = function () { API.panggil('pengguna.status', { id: bt.dataset.akt, aktif: !!bt.dataset.v }).then(function (res) { if (!res.ok) { U.toast(res.pesan, true); return; } muatPengguna(); }); }; });
     });
   }

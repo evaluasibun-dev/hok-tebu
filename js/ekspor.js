@@ -33,7 +33,7 @@ var EKSPOR = (function () {
     var p = F.p, h = p.hit || {}, k = F.keg, kab = F.kab || {}, st = F.setting || {};
     var luasR = U.n(p.real_luas) ? U.ha(p.real_luas) : '……';
     return {
-      judul: k.judul, spk3: k.spk3, sptjm: k.sptjm, frasa: k.frasa, biaya: k.biaya, jenis: k.jenis,
+      judul: k.judul, poktan_besar: t(String(p.poktan || '').toUpperCase()), keg_besar: String(k.nama).toUpperCase(), npwp: t(p.npwp), npwp_an: t(p.npwp_an), spk3: k.spk3, sptjm: k.sptjm, frasa: k.frasa, biaya: k.biaya, jenis: k.jenis,
       tahun: t(st.tahun, '2026'), no_dipa: t(st.no_dipa), tgl_dipa: U.tgl(st.tgl_dipa), kpa: t(st.kpa),
       no_spk: t(p.no_spk), kalimat_spk: U.kalimatHari(p.tgl_spk), tempat_spk: t(p.tempat_spk), jalan_spk: t(p.jalan_spk),
       tgl_spk: U.tgl(p.tgl_spk), spk_sd: U.tgl(p.spk_sd),
@@ -56,7 +56,7 @@ var EKSPOR = (function () {
   // ------------------------------------------------------------ WORD (template resmi)
   var WORD = {
     F01: ['F01_SPK.docx', 'SPK'], F02: ['F02_SPTJM.docx', 'SPTJM'], F08: ['F08_BAST.docx', 'BAST'],
-    F10: ['F10_Dokumentasi.docx', 'Dokumentasi'], F11: ['F11_Kwitansi.docx', 'Kwitansi']
+    F10: ['F10_Dokumentasi.docx', 'Dokumentasi'], F11: ['F11_Kwitansi.docx', 'Kwitansi'], F12: ['F12_KTP_Rekening_NPWP.docx', 'KTP_Rekening_NPWP'], F14: ['F14_KTP_Pekerja.docx', 'KTP_Pekerja']
   };
   function xmlEsc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   function ukuranGambar(url) {
@@ -78,13 +78,15 @@ var EKSPOR = (function () {
   }
   // tabel 2 kolom berisi foto geotag satu tahap
   function tabelFoto(sel) {
-    var kolom = 4650, maxW = 4450 * EMU, maxH = 3150 * EMU;
+    var satu = sel.length === 1, kolom = satu ? 8600 : 4650, maxW = (kolom - 200) * EMU, maxH = (satu ? 5600 : 3150) * EMU;
     var b = '<w:top w:val="single" w:sz="6" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="6" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="6" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="6" w:space="0" w:color="000000"/><w:insideH w:val="single" w:sz="6" w:space="0" w:color="000000"/><w:insideV w:val="single" w:sz="6" w:space="0" w:color="000000"/>';
-    return '<w:tbl><w:tblPr><w:tblW w:w="' + kolom * 2 + '" w:type="dxa"/><w:jc w:val="center"/><w:tblBorders>' + b + '</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="60" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/></w:tblCellMar></w:tblPr>' +
-      '<w:tblGrid><w:gridCol w:w="' + kolom + '"/><w:gridCol w:w="' + kolom + '"/></w:tblGrid><w:tr><w:trPr><w:trHeight w:val="3400"/></w:trPr>' +
+    return '<w:tbl><w:tblPr><w:tblW w:w="' + kolom * sel.length + '" w:type="dxa"/><w:jc w:val="center"/><w:tblBorders>' + b + '</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="60" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/></w:tblCellMar></w:tblPr>' +
+      '<w:tblGrid>' + sel.map(function () { return '<w:gridCol w:w="' + kolom + '"/>'; }).join('') + '</w:tblGrid><w:tr><w:trPr><w:trHeight w:val="' + (satu ? 5900 : 3400) + '"/></w:trPr>' +
       sel.map(function (c) {
         var isi;
-        if (c) {
+        if (c && c.teks) {
+          isi = '<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:color w:val="666666"/></w:rPr><w:t xml:space="preserve">' + xmlEsc(c.teks) + '</w:t></w:r></w:p>';
+        } else if (c) {
           var k = Math.min(maxW / c.w, maxH / c.h), w = Math.round(c.w * k), h = Math.round(c.h * k);
           isi = '<w:p><w:pPr><w:spacing w:before="0" w:after="0"/><w:jc w:val="center"/></w:pPr>' + gambarInline(c.rid, c.id, w, h) + '</w:p>' + (c.ket ? parKecil(c.ket) : '');
         } else {
@@ -93,6 +95,30 @@ var EKSPOR = (function () {
         return '<w:tc><w:tcPr><w:tcW w:w="' + kolom + '" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>' + isi + '</w:tc>';
       }).join('') + '</w:tr></w:tbl><w:p><w:pPr><w:spacing w:before="0" w:after="120"/></w:pPr></w:p>';
   }
+  // F14: 8 KTP per halaman (2 kolom × 4 baris), kepala dokumen diulang tiap halaman
+  function halamanKtp(kepala, daftar) {
+    var kolom = 4800, maxW = 4600 * EMU, maxH = 2650 * EMU, PER = 8, out = [];
+    var b = '<w:top w:val="single" w:sz="6" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="6" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="6" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="6" w:space="0" w:color="000000"/><w:insideH w:val="single" w:sz="6" w:space="0" w:color="000000"/><w:insideV w:val="single" w:sz="6" w:space="0" w:color="000000"/>';
+    var sel = function (c) {
+      var isi;
+      if (!c) isi = '<w:p/>';
+      else if (c.teks) isi = '<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:color w:val="666666"/></w:rPr><w:t xml:space="preserve">' + xmlEsc(c.teks) + '</w:t></w:r></w:p>' + parKecil(c.nama);
+      else {
+        var k = Math.min(maxW / c.w, maxH / c.h), w = Math.round(c.w * k), h = Math.round(c.h * k);
+        isi = '<w:p><w:pPr><w:spacing w:before="0" w:after="0"/><w:jc w:val="center"/></w:pPr>' + gambarInline(c.rid, c.id, w, h) + '</w:p>' + parKecil(c.nama);
+      }
+      return '<w:tc><w:tcPr><w:tcW w:w="' + kolom + '" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>' + isi + '</w:tc>';
+    };
+    for (var i = 0; i < Math.max(daftar.length, 1); i += PER) {
+      var isiHal = daftar.slice(i, i + PER), baris = '';
+      for (var j = 0; j < Math.max(isiHal.length, 1); j += 2) baris += '<w:tr><w:trPr><w:trHeight w:val="3050" w:hRule="exact"/></w:trPr>' + sel(isiHal[j]) + sel(isiHal[j + 1]) + '</w:tr>';
+      out.push((i ? '<w:p><w:r><w:br w:type="page"/></w:r></w:p>' + kepala : '') +
+        '<w:tbl><w:tblPr><w:tblW w:w="' + kolom * 2 + '" w:type="dxa"/><w:jc w:val="center"/><w:tblBorders>' + b + '</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="40" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/></w:tblCellMar></w:tblPr>' +
+        '<w:tblGrid><w:gridCol w:w="' + kolom + '"/><w:gridCol w:w="' + kolom + '"/></w:tblGrid>' + baris + '</w:tbl>');
+    }
+    return out.join('') + '<w:p/>';
+  }
+
   function gantiParagraf(xml, penanda, pengganti) {
     var i = xml.indexOf(penanda);
     if (i < 0) return xml;
@@ -109,20 +135,46 @@ var EKSPOR = (function () {
     }).then(function (buf) { return JSZip.loadAsync(buf); }).then(function (zip) {
       return zip.file('word/document.xml').async('string').then(function (xml) {
         xml = xml.replace(/\{\{([a-z0-9_]+)\}\}/g, function (m, k) { return xmlEsc(nv[k] === undefined ? TITIK : nv[k]); });
-        if (kode !== 'F10') return { zip: zip, xml: xml };
-        // foto geotag
+        if (kode !== 'F10' && kode !== 'F12' && kode !== 'F14') return { zip: zip, xml: xml };
+        if (kode === 'F14') {
+          var nK = 0, relK = '', daftarK = FORM.fotoKtpPekerja(F);
+          var a0 = xml.indexOf('<w:body>') + 8, iPen = xml.indexOf('{{KTP_HALAMAN}}'), aPen = Math.max(xml.lastIndexOf('<w:p>', iPen), xml.lastIndexOf('<w:p ', iPen));
+          var kepala = xml.slice(a0, aPen);
+          return Promise.all(daftarK.map(function (x) {
+            if (x.f && x.f.pdf) return { teks: 'KTP berupa PDF, lampirkan terpisah', nama: x.w.nama };
+            if (!x.f || !x.f.url) return { teks: 'Foto KTP belum diunggah', nama: x.w.nama };
+            nK++;
+            var rid = 'rIdKtp' + nK, berkas = 'media/ktp_' + nK + '.jpeg';
+            zip.file('word/' + berkas, x.f.url.split(',')[1], { base64: true });
+            relK += '<Relationship Id="' + rid + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="' + berkas + '"/>';
+            return ukuranGambar(x.f.url).then(function (u) { return { rid: rid, id: 9500 + nK, w: u.w, h: u.h, nama: x.w.nama }; });
+          })).then(function (sel) {
+            xml = gantiParagraf(xml, '{{KTP_HALAMAN}}', halamanKtp(kepala, sel));
+            var tugas = [];
+            if (relK) tugas.push(zip.file('word/_rels/document.xml.rels').async('string').then(function (r) { zip.file('word/_rels/document.xml.rels', r.replace('</Relationships>', relK + '</Relationships>')); }));
+            tugas.push(zip.file('[Content_Types].xml').async('string').then(function (c) {
+              if (!/Extension="jpeg"/i.test(c)) c = c.replace('<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">', '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="jpeg" ContentType="image/jpeg"/>');
+              zip.file('[Content_Types].xml', c);
+            }));
+            return Promise.all(tugas).then(function () { return { zip: zip, xml: xml }; });
+          });
+        }
+        // foto: F10 dua foto geotag per tahap, F12 satu foto per penanda (KTP ketua, rekening halaman depan, NPWP)
         var foto = F.foto || {}, n = 0, tambahRel = '', jobs = [];
-        ['0persen', '50persen', '100persen'].forEach(function (tahap) {
-          jobs.push(Promise.all([1, 2].map(function (k) {
-            var f = foto[tahap + '_' + k];
-            if (!f || !f.url) return null;
+        var penanda = (xml.match(/\{\{FOTO:[a-z0-9_]+\}\}/g) || []).map(function (m) { return m.slice(7, -2); });
+        penanda.forEach(function (nama) {
+          var kunci = kode === 'F10' ? [nama + '_1', nama + '_2'] : [nama];
+          jobs.push(Promise.all(kunci.map(function (kk) {
+            var f = foto[kk];
+            if (f && f.pdf) return { teks: 'Berkas berupa PDF (' + f.nama + '), lampirkan terpisah' };
+            if (!f || !f.url) return kode === 'F12' ? { teks: 'Foto belum diunggah' } : null;
             n++;
-            var id = 9000 + n, rid = 'rIdFoto' + n, nama = 'media/foto_' + tahap + '_' + k + '.jpeg';
-            zip.file('word/' + nama, f.url.split(',')[1], { base64: true });
-            tambahRel += '<Relationship Id="' + rid + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="' + nama + '"/>';
-            var m = f.meta || {}, ket = [m.tanggal ? m.tanggal.replace('T', ' ') : '', m.lat ? m.lat + ', ' + m.lng : ''].filter(Boolean).join(' · ');
+            var id = 9000 + n, rid = 'rIdFoto' + n, berkas = 'media/foto_' + kk + '.jpeg';
+            zip.file('word/' + berkas, f.url.split(',')[1], { base64: true });
+            tambahRel += '<Relationship Id="' + rid + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="' + berkas + '"/>';
+            var m = f.meta || {}, ket = kode === 'F10' ? [m.tanggal ? m.tanggal.replace('T', ' ') : '', m.lat ? m.lat + ', ' + m.lng : ''].filter(Boolean).join(' · ') : '';
             return ukuranGambar(f.url).then(function (u) { return { rid: rid, id: id, w: u.w, h: u.h, ket: ket }; });
-          })).then(function (sel) { xml = gantiParagraf(xml, '{{FOTO:' + tahap + '}}', tabelFoto(sel)); }));
+          })).then(function (sel) { xml = gantiParagraf(xml, '{{FOTO:' + nama + '}}', tabelFoto(sel)); }));
         });
         return Promise.all(jobs).then(function () {
           var tugas = [];
@@ -206,10 +258,10 @@ var EKSPOR = (function () {
     ['NO', 'DOKUMEN KEGIATAN', 'CHECK LIST', 'KETERANGAN'].forEach(function (x, i) { sel(ws, kol(i + 1) + r, x, { h: 'center', bold: true, border: true, fill: true }); });
     var docs = [
       ['Surat Perjanjian Kerjasama dengan Kelompok Tani', p.no_spk && p.tgl_spk], ['SPTJM Kelompok Tani', p.tgl_sptjm], ['Rencana Usaha Kegiatan Kelompok (RUKK)', p.tgl_rukk],
-      ['Buku rekening atas nama Kelompok Tani', (d.rek || []).length >= 3], ['Daftar hadir kerja', h.nPek > 0], ['Laporan Hasil Pekerjaan Ketua Kelompok ke PPK', p.tgl_lap],
+      ['Buku rekening atas nama Kelompok Tani', (d.rek || []).length >= 3], ['Foto KTP Ketua dan NPWP Kelompok Tani / Ketua', h.dok && h.dok.idn >= 2], ['Daftar hadir kerja', h.nPek > 0], ['Laporan Hasil Pekerjaan Ketua Kelompok ke PPK', p.tgl_lap],
       ['Berita Acara Pemeriksaan Hasil Pekerjaan oleh Tim Teknis', p.no_bap && p.tgl_bap], ['BAST Petani ke PPK', p.no_bast && p.tgl_bast], ['Bukti Pembayaran Petani', p.tgl_tt],
       ['Foto/Dokumentasi Kegiatan Geotagging (sebelum, proses, sesudah)', (d.geo || []).length >= 6], ['Kwitansi Pembayaran ke Petani', p.tgl_kw],
-      ['Foto KTP Petani Pekerja', h.dok && h.nPek > 0 && h.dok.ktp >= h.nPek], ['Alamat Kelompok Tani', p.norek && p.desa]
+      ['Foto KTP Petani Pekerja', h.dok && h.nPek > 0 && h.dok.ktp >= h.nPek], ['List Data Kelompok Tani (alamat sesuai buku rekening)', p.norek && p.desa]
     ];
     docs.forEach(function (x, i) {
       r++;
@@ -369,18 +421,18 @@ var EKSPOR = (function () {
   // F13 alamat poktan per kabupaten
   function excelAlamat(kab, keg, daftar) {
     return muat('ExcelJS').then(function (ExcelJS) {
-      var wb = new ExcelJS.Workbook(), ws = lembar(wb, 'Alamat Kelompok Tani', [5, 28, 22, 20, 22, 16, 16, 14, 16, 20, 26, 22], true);
-      var r = judulLembar(ws, ['ALAMAT KELOMPOK TANI (Sesuai dengan Buku Rekening)', HOK.KEG[keg].judul, 'KABUPATEN ' + kab.kab.toUpperCase() + ' PROVINSI ' + String(kab.provinsi || '').toUpperCase()], 12);
+      var wb = new ExcelJS.Workbook(), ws = lembar(wb, 'List Data Kelompok Tani', [5, 28, 22, 20, 22, 16, 16, 14, 16, 20, 26, 26], true);
+      var r = judulLembar(ws, ['LIST DATA KELOMPOK TANI PENERIMA BANTUAN'].concat(keg ? [HOK.KEG[keg].judul] : []).concat(['KABUPATEN ' + kab.kab.toUpperCase() + ' PROVINSI ' + String(kab.provinsi || '').toUpperCase()]), 12);
       ['NO', 'NAMA KELOMPOK TANI', 'KETUA KELOMPOK TANI', 'NIK', 'JALAN', 'DESA', 'KECAMATAN', 'KABUPATEN', 'PROVINSI', 'NO REKENING', 'NAMA REKENING', 'NOMOR NPWP (KT/KETUA KT)']
         .forEach(function (x, i) { sel(ws, kol(i + 1) + r, x, { h: 'center', bold: true, border: true, wrap: true, kecil: true, fill: true }); });
       ws.getRow(r).height = 32;
       daftar.forEach(function (p, i) {
         r++;
-        [i + 1, p.poktan, p.ketua, String(p.nik_ketua || ''), p.jalan, p.desa, p.kec, p.kab, kab.provinsi, String(p.norek || ''), p.namarek, String(p.npwp || '')]
-          .forEach(function (v, j) { sel(ws, kol(j + 1) + r, v === undefined ? '' : v, { border: true, kecil: true, h: j === 0 ? 'center' : 'left', fmt: [3, 9, 11].indexOf(j) >= 0 ? '@' : undefined }); });
+        [i + 1, p.poktan, p.ketua, String(p.nik_ketua || ''), p.jalan, p.desa, p.kec, p.kab, kab.provinsi, String(p.norek || ''), p.namarek, String(p.npwp || '') + (p.npwp && p.npwp_an ? ' (' + p.npwp_an + ')' : '')]
+          .forEach(function (v, j) { sel(ws, kol(j + 1) + r, v === undefined ? '' : v, { border: true, kecil: true, wrap: true, h: j === 0 ? 'center' : 'left', fmt: [3, 9, 11].indexOf(j) >= 0 ? '@' : undefined }); });
       });
       return wb.xlsx.writeBuffer();
-    }).then(function (buf) { unduh(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'Alamat_Poktan_' + kab.kab.replace(/\s+/g, '-') + '_' + HOK.kodeKeg(keg) + '.xlsx'); });
+    }).then(function (buf) { unduh(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'F13_List_Data_Poktan_' + kab.kab.replace(/\s+/g, '-') + (keg ? '_' + HOK.kodeKeg(keg) : '') + '.xlsx'); });
   }
 
   return { WORD: WORD, EXCEL: EXCEL, word: word, wordSemua: wordSemua, excel: excel, excelAlamat: excelAlamat, nilai: nilai };

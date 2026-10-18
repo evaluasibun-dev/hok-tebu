@@ -6,7 +6,7 @@
 var HOK = (function () {
   'use strict';
 
-  var VERSI = '1.0.0';
+  var VERSI = '1.5.0';
 
   // ------------------------------------------------------------------ skema tabel
   var TABEL = {
@@ -17,7 +17,7 @@ var HOK = (function () {
     POKTAN: ['id', 'kab', 'keg', 'poktan', 'ketua', 'nik_ketua', 'jalan', 'desa', 'kec', 'bank', 'norek', 'namarek', 'npwp',
       'luas', 'hokha_khusus', 'upah_khusus', 'no_cpcl', 'tgl_cpcl', 'no_spk', 'tgl_spk', 'tempat_spk', 'jalan_spk', 'spk_sd',
       'tgl_sptjm', 'tgl_rukk', 'mulai', 'selesai', 'tgl_lap', 'no_bap', 'tgl_bap', 'no_bast', 'tgl_bast', 'no_kw', 'tgl_kw',
-      'tgl_tt', 'real_luas', 'folder_id', 'dok', 'diubah', 'oleh', 'mulai_olah'],
+      'tgl_tt', 'real_luas', 'folder_id', 'dok', 'diubah', 'oleh', 'mulai_olah', 'npwp_an'],
     PEKERJA: ['id', 'id_poktan', 'kab', 'nama', 'nik', 'alamat', 'hadir', 'diubah', 'oleh'],
     PENGGUNA: ['id', 'nama', 'peran', 'provinsi', 'kab', 'kode_hash', 'aktif', 'dibuat', 'terakhir_masuk'],
     LOG: ['waktu', 'pengguna', 'aksi', 'rincian']
@@ -43,8 +43,10 @@ var HOK = (function () {
   };
 
   // Struktur folder dokumen per poktan dan slot berkas yang diharapkan
-  var SUBFOLDER = { rek: '1_Buku_Rekening', geo: '2_Foto_Geotag', ktp: '3_KTP_Pekerja', ttd: '4_Dokumen_TTD' };
+  var SUBFOLDER = { rek: '1_Buku_Rekening', geo: '2_Foto_Geotag', ktp: '3_KTP_Pekerja', ttd: '4_Dokumen_TTD', idn: '5_KTP_Ketua_NPWP' };
+  var NPWP_AN = ['Kelompok Tani', 'Ketua Kelompok Tani', 'Pengurus lain'];
   var SLOT = {
+    idn: [['ktp_ketua', 'KTP ketua kelompok tani'], ['npwp', 'NPWP kelompok tani / ketua']],
     rek: [['depan', 'Halaman depan'], ['mutasi_sebelum', 'Mutasi sebelum dana masuk'], ['mutasi_sesudah', 'Mutasi setelah ditarik']],
     geo: [['0persen_1', '0% · foto 1'], ['0persen_2', '0% · foto 2'], ['50persen_1', '50% · foto 1'], ['50persen_2', '50% · foto 2'],
       ['100persen_1', '100% · foto 1'], ['100persen_2', '100% · foto 2']],
@@ -210,12 +212,15 @@ var HOK = (function () {
   var NAMA_TAHAP = ['Belum SPK', 'SPK', 'Berjalan', 'BAP', 'BAST', 'Kwitansi'];
 
   function ringkasDok(p, nPek, niks) {
-    var d = parseJSON(p.dok, null) || { rek: [], geo: [], ktp: [], ttd: [] };
+    var d = parseJSON(p.dok, null) || { rek: [], geo: [], ktp: [], ttd: [], idn: [] };
     var ktpNik = (d.ktp || []).map(function (n) { return n.slice(0, 16); });
-    var ktpCocok = (niks || []).filter(function (n) { return ktpNik.indexOf(n) >= 0; }).length;
+    var idnAda = d.idn || [], ktpKetua = idnAda.indexOf('ktp_ketua') >= 0;
+    // ketua yang ikut bekerja boleh memakai KTP ketua sebagai KTP pekerja
+    var ktpCocok = (niks || []).filter(function (n) { return ktpNik.indexOf(n) >= 0 || (ktpKetua && n && n === s(p.nik_ketua)); }).length;
     var rek = Math.min((d.rek || []).length, 3), geo = Math.min((d.geo || []).length, 6), ttd = Math.min((d.ttd || []).length, 10);
-    var butuh = 3 + 6 + nPek + 10, ada = rek + geo + ktpCocok + ttd;
-    return { rek: rek, geo: geo, ktp: ktpCocok, ktpFile: (d.ktp || []).length, ttd: ttd, nPek: nPek,
+    var idn = SLOT.idn.filter(function (x) { return idnAda.indexOf(x[0]) >= 0; }).length;
+    var butuh = 2 + 3 + 6 + nPek + 10, ada = idn + rek + geo + ktpCocok + ttd;
+    return { idn: idn, ktpKetua: ktpKetua, npwp: idnAda.indexOf('npwp') >= 0, rek: rek, geo: geo, ktp: ktpCocok, ktpFile: (d.ktp || []).length, ttd: ttd, nPek: nPek,
       persen: butuh ? Math.round(ada / butuh * 100) : 0, ada: ada, butuh: butuh, lengkap: ada === butuh && nPek > 0 };
   }
 
@@ -235,6 +240,12 @@ var HOK = (function () {
       if (nk.error) E('nik_ketua', 'NIK ketua: ' + nk.error);
       nk.peringatan.forEach(function (w) { W('nik_ketua', 'NIK ketua: ' + w); });
     }
+    if (s(p.npwp)) {
+      var dg = s(p.npwp).replace(/[.\-\s]/g, '');
+      if (!/^\d+$/.test(dg) || (dg.length !== 15 && dg.length !== 16)) W('npwp', 'NPWP biasanya 15 digit (format lama) atau 16 digit (sama dengan NIK)');
+      if (!s(p.npwp_an)) W('npwp_an', 'Pilih NPWP atas nama kelompok tani, ketua, atau pengurus lain');
+    }
+    if (s(p.npwp_an) && NPWP_AN.indexOf(s(p.npwp_an)) < 0) E('npwp_an', 'Pilihan NPWP atas nama tidak dikenal');
     var d = function (f) { return isISO(p[f]) ? p[f] : null; };
     var dipa = isISO(ctx.setting.tgl_dipa) ? ctx.setting.tgl_dipa : null;
     if (d('tgl_spk') && dipa && d('tgl_spk') <= dipa) E('tgl_spk', 'SPK harus setelah tanggal DIPA (' + tglPendek(dipa) + ')');
@@ -495,12 +506,51 @@ var HOK = (function () {
   }
   function hashKode(kode, salt) { return sha256(s(salt) + '|' + s(kode).toUpperCase().replace(/\s+/g, '')); }
 
+  // status akun (aktif + sidik kode) disimpan di cache agar sesi lama langsung berakhir saat kode diganti atau akun dinonaktifkan
+  function statusAkun(id, env, segar) {
+    var k = 'akun_' + id, v = segar ? null : env.cache.get(k);
+    if (v === null || v === undefined) {
+      var u = by(env.store.all('PENGGUNA'), 'id')[id];
+      v = !u ? 'x|' : (s(u.aktif) === 'Tidak' ? 'x|' : 'ok|') + s(u.kode_hash).slice(0, 12);
+      env.cache.put(k, v, 21600);
+    }
+    return v;
+  }
   function sesi(token, env) {
     if (!token) return null;
     var raw = env.cache.get('sesi_' + token);
     if (!raw) return null;
+    var u = JSON.parse(raw);
+    if (u.h && statusAkun(u.id, env) !== 'ok|' + u.h) { env.cache.remove('sesi_' + token); return null; }
     env.cache.put('sesi_' + token, raw, 21600);
-    return JSON.parse(raw);
+    return u;
+  }
+  function publikUser(u) { return { id: u.id, nama: u.nama, peran: u.peran, provinsi: u.provinsi, kab: u.kab }; }
+
+  // kode akses buatan sendiri: 8–24 huruf/angka (boleh tanda -), wajib campuran huruf dan angka, tidak dipakai pengguna lain
+  function cekKodeBaru(kode, setting, users, idSendiri) {
+    var k = s(kode).toUpperCase().replace(/\s+/g, ''), inti = k.replace(/-/g, '');
+    if (!/^[A-Z0-9-]+$/.test(k)) return { error: 'Kode hanya boleh berisi huruf, angka dan tanda -' };
+    if (inti.length < 8 || k.length > 24) return { error: 'Panjang kode 8–24 karakter (tanpa menghitung tanda -)' };
+    if (!/[A-Z]/.test(inti) || !/[0-9]/.test(inti)) return { error: 'Kode harus campuran huruf dan angka' };
+    if (/^(.)\1+$/.test(inti) || /0123|1234|2345|3456|4567|5678|6789|ABCD|QWER|PASS|ADMIN|HOKTEBU/.test(inti)) return { error: 'Kode terlalu mudah ditebak' };
+    var h = hashKode(k, setting.salt);
+    if (users.some(function (u) { return u.kode_hash === h && u.id !== idSendiri; })) return { error: 'Kode ini tidak bisa dipakai. Pilih kode lain.' };
+    return { kode: k, hash: h };
+  }
+  // ganti kode satu pengguna; kode kosong = dibuatkan acak. Mengembalikan kode baru (ditampilkan sekali)
+  function gantiKode(u, kodeBaru, env) {
+    var setting = settingObj(env.store.all('SETTING')), users = env.store.all('PENGGUNA');
+    var k;
+    if (s(kodeBaru)) { k = cekKodeBaru(kodeBaru, setting, users, u.id); if (k.error) return gagal('VALIDASI', k.error); }
+    else {
+      var prefix = u.peran === 'kabupaten' ? ((by(env.store.all('KABUPATEN'), 'kab')[u.kab] || {}).kode || 'KAB') : u.peran === 'provinsi' ? ((by(env.store.all('PROVINSI'), 'provinsi')[u.provinsi] || {}).kode || 'PRV') : 'PST';
+      var kd = kodeAcak(prefix, env); k = { kode: kd, hash: hashKode(kd, setting.salt) };
+    }
+    u = Object.assign({}, u, { kode_hash: k.hash });
+    env.store.upsert('PENGGUNA', [u]);
+    statusAkun(u.id, env, true);
+    return ok({ kode: k.kode, h: k.hash.slice(0, 12), pengguna: publikUser(u) });
   }
 
   // ------------------------------------------------------------------ respons
@@ -517,7 +567,7 @@ var HOK = (function () {
   function ok(data) { return { ok: true, data: data }; }
   function gagal(kode, pesan, rincian) { return { ok: false, kode: kode, pesan: pesan, rincian: rincian || null }; }
   function catat(env, user, aksi, rincian) {
-    try { env.store.append('LOG', [{ waktu: waktuJakarta(env), pengguna: user ? (user.nama + ' (' + user.peran + (user.kab ? ' ' + user.kab : user.provinsi ? ' ' + user.provinsi : '') + ')') : '-', aksi: aksi, rincian: s(rincian).slice(0, 500) }]); } catch (e) { /* log tidak boleh menggagalkan aksi */ }
+    try { (env.store.appendAtomik || env.store.append)('LOG', [{ waktu: waktuJakarta(env), pengguna: user ? (user.nama + ' (' + user.peran + (user.kab ? ' ' + user.kab : user.provinsi ? ' ' + user.provinsi : '') + ')') : '-', aksi: aksi, rincian: s(rincian).slice(0, 500) }]); } catch (e) { /* log tidak boleh menggagalkan aksi */ }
   }
 
   function publikSetting(st) {
@@ -542,9 +592,10 @@ var HOK = (function () {
     var h = hashKode(kode, setting.salt);
     var u = env.store.all('PENGGUNA').filter(function (x) { return x.kode_hash === h && s(x.aktif) !== 'Tidak'; })[0];
     if (!u) { env.cache.put(kunciGagal, String(nGagal + 1), 900); return gagal('LOGIN', 'Kode akses tidak dikenali atau sudah tidak aktif'); }
-    var user = { id: u.id, nama: u.nama, peran: u.peran, provinsi: u.provinsi, kab: u.kab };
+    var user = publikUser(u);
     var token = env.uuid().replace(/-/g, '') + env.uuid().replace(/-/g, '');
-    env.cache.put('sesi_' + token, JSON.stringify(user), 21600);
+    env.cache.put('sesi_' + token, JSON.stringify(Object.assign({ h: s(u.kode_hash).slice(0, 12) }, user)), 21600);
+    statusAkun(u.id, env, true);
     env.lock(function () { env.store.upsert('PENGGUNA', [Object.assign({}, u, { terakhir_masuk: waktuJakarta(env) })]); });
     catat(env, user, 'masuk', '');
     return ok({ token: token, user: user });
@@ -554,7 +605,7 @@ var HOK = (function () {
     var ctx = konteks(env), hit = hitungSemua(ctx), kabs = cakupanKab(user, ctx), inK = {};
     kabs.forEach(function (k) { inK[k] = 1; });
     return ok({
-      versi: VERSI, user: user, setting: publikSetting(ctx.setting), kegiatan: KEG, slot: SLOT,
+      versi: VERSI, user: publikUser(user), setting: publikSetting(ctx.setting), kegiatan: KEG, slot: SLOT,
       provinsi: ctx.prov,
       kabupaten: ctx.kab.filter(function (k) { return inK[k.kab]; }),
       poktan: ctx.poktan.filter(function (p) { return inK[p.kab]; }).map(function (p) { return poktanKeluar(p, hit.per[p.id]); }),
@@ -590,7 +641,7 @@ var HOK = (function () {
       provinsi: ctx.provBy[(ctx.kabBy[p.kab] || {}).provinsi] || {},
       temuan: hit.temuan.filter(function (t) { return t.id_poktan === p.id; }),
       validasi: validasiPoktan(p, ctx),
-      dok: parseJSON(p.dok, { rek: [], geo: [], ktp: [], ttd: [] }),
+      dok: parseJSON(p.dok, { rek: [], geo: [], ktp: [], ttd: [], idn: [] }),
       versi: versiPoktan(p),
       versiPekerja: versiPekerja(pek)
     });
@@ -682,11 +733,12 @@ var HOK = (function () {
       });
       var hapus = Object.keys(lama).filter(function (id) { return !dipakai[id]; });
       if (simpan.length) env.store.upsert('PEKERJA', simpan);
+      var baruPer = by(simpan, 'id'), akhir = Object.keys(dipakai).map(function (id) { return baruPer[id] || lama[id]; });
       if (simpan.length || hapus.length) { try { env.cache.put('pekerja_ubah_' + p.id, JSON.stringify({ oleh: user.nama, diubah: waktuJakarta(env) }), 21600); } catch (x) { /* abaikan */ } }
       if (hapus.length) env.store.remove('PEKERJA', hapus);
       // ringkasan dokumen bergantung pada daftar NIK, tandai diubah
       catat(env, user, 'simpan kehadiran', p.id + ': ' + rows.length + ' pekerja, ' + v.total + ' HOK, ' + simpan.length + ' baris berubah, ' + hapus.length + ' dihapus');
-      return ok({ total: v.total, tHOK: v.tHOK, peringatan: v.peringatan, berubah: simpan.length, dihapus: hapus.length, versi: versiPekerja(konteks(env).pekerjaPer[p.id] || []) });
+      return ok({ total: v.total, tHOK: v.tHOK, peringatan: v.peringatan, berubah: simpan.length, dihapus: hapus.length, versi: versiPekerja(akhir) });
     });
   }
 
@@ -694,14 +746,14 @@ var HOK = (function () {
   function folderPoktan(p, ctx, env) {
     if (s(p.folder_id)) return p.folder_id;
     var kab = ctx.kabBy[p.kab] || {};
-    var id = env.files.ensureFolder([kab.provinsi || 'Provinsi', p.kab, namaFolder(p)], [SUBFOLDER.rek, SUBFOLDER.geo, SUBFOLDER.ktp, SUBFOLDER.ttd]);
+    var id = env.files.ensureFolder([kab.provinsi || 'Provinsi', p.kab, namaFolder(p)], [SUBFOLDER.rek, SUBFOLDER.geo, SUBFOLDER.ktp, SUBFOLDER.ttd, SUBFOLDER.idn]);
     p.folder_id = id;
     env.store.upsert('POKTAN', [p]);
     return id;
   }
 
   function ringkasFolder(list) {
-    var d = { rek: [], geo: [], ktp: [], ttd: [] }, inv = {};
+    var d = { rek: [], geo: [], ktp: [], ttd: [], idn: [] }, inv = {};
     Object.keys(SUBFOLDER).forEach(function (k) { inv[SUBFOLDER[k]] = k; });
     list.forEach(function (f) { var g = inv[f.sub]; if (g) d[g].push(f.name.replace(/\.[a-z]+$/i, '')); });
     return d;
@@ -727,33 +779,45 @@ var HOK = (function () {
     if (!SUBFOLDER[grup]) return gagal('VALIDASI', 'Jenis berkas tidak dikenal');
     if (!MIME_OK[mime]) return gagal('VALIDASI', 'Format berkas harus JPG, PNG atau PDF');
     if (!data || data.length > MAX_BASE64) return gagal('VALIDASI', 'Ukuran berkas maksimal 10 MB');
-    return env.lock(function () {
-      var ctx = konteks(env), c = cariPoktan(req.id_poktan, user, ctx);
-      if (c.err) return c.err;
-      var p = c.p;
-      if (!bolehTulisKab(user, p.kab)) return gagal('AKSES', 'Peran ' + user.peran + ' tidak boleh mengunggah berkas');
-      var nama, ganti = null;
-      if (grup === 'ktp') {
-        var w = (ctx.pekerjaPer[p.id] || []).filter(function (x) { return s(x.nik) === slot; })[0];
-        if (!w) return gagal('VALIDASI', 'NIK ' + slot + ' tidak ada di daftar pekerja poktan ini. Simpan pekerjanya dulu.');
-        nama = slot + '_' + bersih(w.nama).slice(0, 40);
-        ganti = slot + '_';
-      } else {
-        var sah = SLOT[grup].map(function (x) { return x[0]; });
-        if (sah.indexOf(slot) < 0) return gagal('VALIDASI', 'Slot berkas tidak dikenal');
-        nama = slot;
-        ganti = slot + '.';
-      }
-      nama += '.' + MIME_OK[mime];
-      var fid = folderPoktan(p, ctx, env);
-      var meta = req.meta ? JSON.stringify(req.meta).slice(0, 900) : '';
-      var f = env.files.save(fid, SUBFOLDER[grup], nama, mime, data, meta, ganti);
-      var list = daftarBerkas(p, env);
-      p.dok = JSON.stringify(ringkasFolder(list.map(function (x) { return { name: x.nama, sub: SUBFOLDER[x.grup] || '' }; })));
-      env.store.upsert('POKTAN', [p]);
-      catat(env, user, 'unggah berkas', p.id + ' ' + grup + '/' + nama + ' (' + Math.round(data.length * 0.75 / 1024) + ' KB)');
-      return ok({ berkas: list, id: f.id });
+    // Penyimpanan ke Drive (bagian paling lama) dikerjakan di luar antrean kunci agar unggahan dari banyak kabupaten
+    // tidak saling menunggu. Kunci hanya dipakai sebentar untuk mencatat ringkasan dokumen di baris poktan.
+    var ctx = konteks(env), c = cariPoktan(req.id_poktan, user, ctx);
+    if (c.err) return c.err;
+    var p = c.p;
+    if (!bolehTulisKab(user, p.kab)) return gagal('AKSES', 'Peran ' + user.peran + ' tidak boleh mengunggah berkas');
+    var nama, ganti = null;
+    if (grup === 'ktp') {
+      var w = (ctx.pekerjaPer[p.id] || []).filter(function (x) { return s(x.nik) === slot; })[0];
+      if (!w) return gagal('VALIDASI', 'NIK ' + slot + ' tidak ada di daftar pekerja poktan ini. Simpan pekerjanya dulu.');
+      nama = slot + '_' + bersih(w.nama).slice(0, 40);
+      ganti = slot + '_';
+    } else {
+      var sah = SLOT[grup].map(function (x) { return x[0]; });
+      if (sah.indexOf(slot) < 0) return gagal('VALIDASI', 'Slot berkas tidak dikenal');
+      nama = slot;
+      ganti = slot + '.';
+    }
+    nama += '.' + MIME_OK[mime];
+    var fid = s(p.folder_id) || env.lock(function () {
+      var segar = by(env.store.all('POKTAN'), 'id')[p.id];
+      return segar ? folderPoktan(segar, ctx, env) : '';
     });
+    if (!fid) return gagal('TIDAK_ADA', 'Poktan ' + p.id + ' tidak ditemukan');
+    var meta = req.meta ? JSON.stringify(req.meta).slice(0, 900) : '';
+    var f = env.files.save(fid, SUBFOLDER[grup], nama, mime, data, meta, ganti);
+    var list = daftarBerkas(Object.assign({}, p, { folder_id: fid }), env);
+    env.lock(function () {
+      var segar = by(env.store.all('POKTAN'), 'id')[p.id];
+      if (segar) {
+        var d = parseJSON(segar.dok, null) || {}, inti = nama.replace(/\.[a-z]+$/i, ''), awal = grup === 'ktp' ? ganti : slot;
+        ['rek', 'geo', 'ktp', 'ttd', 'idn'].forEach(function (g) { d[g] = d[g] || []; });
+        d[grup] = d[grup].filter(function (x) { return grup === 'ktp' ? x.indexOf(awal) !== 0 : x !== awal; }).concat([inti]);
+        segar.dok = JSON.stringify(d);
+        env.store.upsert('POKTAN', [segar]);
+      }
+      catat(env, user, 'unggah berkas', p.id + ' ' + grup + '/' + nama + ' (' + Math.round(data.length * 0.75 / 1024) + ' KB)');
+    });
+    return ok({ berkas: list, id: f.id });
   }
 
   function poktanDariBerkas(fileId, user, ctx, env) {
@@ -772,17 +836,37 @@ var HOK = (function () {
   }
 
   function aksiBerkasHapus(req, user, env) {
-    return env.lock(function () {
-      var ctx = konteks(env), c = poktanDariBerkas(s(req.fileId), user, ctx, env);
-      if (c.err) return c.err;
-      if (!bolehTulisKab(user, c.p.kab)) return gagal('AKSES', 'Tidak berhak menghapus berkas');
-      env.files.trash(s(req.fileId));
-      var list = daftarBerkas(c.p, env);
-      c.p.dok = JSON.stringify(ringkasFolder(list.map(function (x) { return { name: x.nama, sub: SUBFOLDER[x.grup] || '' }; })));
-      env.store.upsert('POKTAN', [c.p]);
+    var ctx = konteks(env), c = poktanDariBerkas(s(req.fileId), user, ctx, env);
+    if (c.err) return c.err;
+    if (!bolehTulisKab(user, c.p.kab)) return gagal('AKSES', 'Tidak berhak menghapus berkas');
+    env.files.trash(s(req.fileId));
+    var list = daftarBerkas(c.p, env);
+    env.lock(function () {
+      var segar = by(env.store.all('POKTAN'), 'id')[c.p.id];
+      if (segar) {
+        segar.dok = JSON.stringify(ringkasFolder(list.map(function (x) { return { name: x.nama, sub: SUBFOLDER[x.grup] || '' }; })));
+        env.store.upsert('POKTAN', [segar]);
+      }
       catat(env, user, 'hapus berkas', c.p.id + ' ' + req.fileId);
-      return ok({ berkas: list });
     });
+    return ok({ berkas: list });
+  }
+
+  // ------------------------------------------------------------------ ukur kecepatan (dijalankan dari editor, hanya membaca)
+  function ukurKecepatan(env) {
+    var t0 = Date.now(), jam = function () { var t = Date.now() - t0; t0 = Date.now(); return t; }, h = {};
+    var ctx = konteks(env); h.baca_semua_ms = jam();
+    h.baris = { poktan: ctx.poktan.length, pekerja: ctx.pekerja.length, hadir: ctx.pekerja.reduce(function (a, w) { return a + w._hadir.length; }, 0) };
+    hitungSemua(ctx); h.hitung_rekap_ms = jam();
+    var besar = Object.keys(ctx.pekerjaPer).sort(function (a, b) { return ctx.pekerjaPer[b].length - ctx.pekerjaPer[a].length; })[0];
+    if (besar) {
+      var p = ctx.poktanBy[besar], rows = ctx.pekerjaPer[besar].map(function (w) { return { id: w.id, nama: w.nama, nik: w.nik, alamat: w.alamat, hadir: w._hadir }; });
+      validasiPekerja(p, rows, ctx, { lama: ctx.pekerjaPer[besar] }); h.validasi_poktan_terbesar_ms = jam(); h.poktan_terbesar = besar + ' (' + rows.length + ' pekerja)';
+    }
+    env.lock(function () { return 1; }); h.kunci_ms = jam();
+    var adaFolder = ctx.poktan.filter(function (x) { return s(x.folder_id); })[0];
+    if (adaFolder) { daftarBerkas(adaFolder, env); h.daftar_berkas_ms = jam(); }
+    return h;
   }
 
   // ------------------------------------------------------------------ master & pengaturan
@@ -843,11 +927,37 @@ var HOK = (function () {
       }
       var u = by(env.store.all('PENGGUNA'), 'id')[s(req.id)];
       if (!u) return gagal('TIDAK_ADA', 'Pengguna tidak ditemukan');
+      if (req.action === 'pengguna.gantikode') {
+        var g = gantiKode(u, req.kode, env);
+        if (g.ok) {
+          catat(env, user, 'ganti kode pengguna', u.nama);
+          if (u.id === user.id) env.cache.put('sesi_' + req.token, JSON.stringify(Object.assign({}, user, { h: g.data.h })), 21600);
+          delete g.data.h;
+        }
+        return g;
+      }
       if (u.id === user.id) return gagal('VALIDASI', 'Tidak bisa menonaktifkan akun yang sedang dipakai');
       u.aktif = req.aktif ? 'Ya' : 'Tidak';
       env.store.upsert('PENGGUNA', [u]);
+      statusAkun(u.id, env, true);
       catat(env, user, 'status pengguna', u.nama + ' → ' + u.aktif);
       return ok({});
+    });
+  }
+
+  // pengguna mengganti kode aksesnya sendiri (semua peran): wajib kode lama
+  function aksiGantiKodeSendiri(req, user, env) {
+    return env.lock(function () {
+      var setting = settingObj(env.store.all('SETTING'));
+      var u = by(env.store.all('PENGGUNA'), 'id')[user.id];
+      if (!u) return gagal('TIDAK_ADA', 'Akun tidak ditemukan');
+      if (hashKode(req.kode_lama, setting.salt) !== u.kode_hash) return gagal('VALIDASI', 'Kode akses lama tidak sesuai');
+      if (s(req.kode_baru) && s(req.kode_baru).toUpperCase().replace(/\s+/g, '') === s(req.kode_lama).toUpperCase().replace(/\s+/g, '')) return gagal('VALIDASI', 'Kode baru sama dengan kode lama');
+      var g = gantiKode(u, req.kode_baru, env);
+      if (!g.ok) return g;
+      env.cache.put('sesi_' + req.token, JSON.stringify(Object.assign({}, user, { h: g.data.h })), 21600);
+      catat(env, user, 'ganti kode sendiri', '');
+      return ok({ kode: g.data.kode });
     });
   }
 
@@ -959,20 +1069,22 @@ var HOK = (function () {
         case 'berkas.hapus': return aksiBerkasHapus(req, user, env);
         case 'kab.simpan': return aksiKabSimpan(req, user, env);
         case 'setting.simpan': return aksiSettingSimpan(req, user, env);
-        case 'pengguna.daftar': case 'pengguna.buat': case 'pengguna.status': return aksiPengguna(req, user, env);
+        case 'pengguna.daftar': case 'pengguna.buat': case 'pengguna.status': case 'pengguna.gantikode': return aksiPengguna(req, user, env);
+        case 'akun.gantikode': return aksiGantiKodeSendiri(req, user, env);
         case 'impor': return aksiImpor(req, user, env);
         default: return gagal('AKSI', 'Aksi tidak dikenal: ' + a);
       }
     } catch (e) {
+      if (e && e.kode === 'SIBUK') return gagal('SIBUK', 'Server sedang melayani banyak simpanan bersamaan. Halaman akan mencoba lagi otomatis; bila tetap gagal, tunggu sebentar lalu klik Simpan lagi. Isian Anda masih ada di layar.');
       try { catat(env, null, 'galat', (req && req.action) + ': ' + (e && e.stack || e)); } catch (x) { /* abaikan */ }
       return gagal('GALAT', 'Terjadi kesalahan di server: ' + (e && e.message || e));
     }
   }
 
   return {
-    VERSI: VERSI, TABEL: TABEL, KEG: KEG, SLOT: SLOT, SUBFOLDER: SUBFOLDER, BULAN: BULAN, NAMA_TAHAP: NAMA_TAHAP,
+    VERSI: VERSI, TABEL: TABEL, KEG: KEG, SLOT: SLOT, NPWP_AN: NPWP_AN, SUBFOLDER: SUBFOLDER, BULAN: BULAN, NAMA_TAHAP: NAMA_TAHAP,
     FIELD_TANGGAL: FIELD_TANGGAL, MIME_OK: MIME_OK,
-    handle: handle, setupAwal: setupAwal, pindaiDokumen: pindaiDokumen, buatPengguna: buatPengguna,
+    handle: handle, ukurKecepatan: ukurKecepatan, setupAwal: setupAwal, pindaiDokumen: pindaiDokumen, buatPengguna: buatPengguna,
     // dipakai juga di browser untuk validasi langsung
     cekNik: cekNik, isISO: isISO, awalHadir: awalHadir, hari: hari, dariHari: dariHari, num: num, tarif: tarif, kodeKeg: kodeKeg, idLokal: idLokal,
     namaFolder: namaFolder, validasiPoktan: validasiPoktan, validasiPekerja: validasiPekerja, sha256: sha256, hashKode: hashKode,
