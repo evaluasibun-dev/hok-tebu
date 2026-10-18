@@ -245,10 +245,11 @@ var EKSPOR = (function () {
 
   function periode(F) {
     var p = F.p, h = p.hit || {};
-    if (!HOK.isISO(p.mulai)) return null;
-    var akhir = HOK.isISO(p.selesai) ? p.selesai : p.mulai;
+    var m0 = HOK.awalHadir(p); // awal = tgl mulai pengolahan lahan, akhir = tgl selesai pekerjaan
+    if (!m0) return null;
+    var akhir = HOK.isISO(p.selesai) ? p.selesai : m0;
     if (h.hadirAkhir && h.hadirAkhir > akhir) akhir = h.hadirAkhir;
-    return { mulai: p.mulai, jumlah: HOK.hari(akhir) - HOK.hari(p.mulai) + 1 };
+    return { mulai: m0, jumlah: HOK.hari(akhir) - HOK.hari(m0) + 1 };
   }
   function xF05(wb, F, nv) {
     var per = periode(F), HARI = 15, pek = F.pekerja || [];

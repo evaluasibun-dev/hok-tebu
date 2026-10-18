@@ -281,7 +281,8 @@
     ['C. Nomor dan tanggal dokumen', [
       ['no_cpcl', 'No. SK CPCL'], ['tgl_cpcl', 'Tgl SK CPCL', 'date'], ['no_spk', 'No. SPK'], ['tgl_spk', 'Tgl SPK', 'date', 'setelah DIPA dan SK CPCL'],
       ['tempat_spk', 'SPK bertempat di'], ['jalan_spk', 'Jalan tempat SPK'], ['spk_sd', 'SPK berlaku s.d.', 'date'], ['tgl_sptjm', 'Tgl SPTJM', 'date', 'sama/setelah SPK'],
-      ['tgl_rukk', 'Tgl RUKK', 'date', 'sama/setelah SPK, sebelum mulai'], ['mulai', 'Tgl mulai pekerjaan', 'date', 'setelah tanggal SPK'], ['selesai', 'Tgl selesai pekerjaan', 'date', 'dalam masa berlaku SPK'],
+      ['tgl_rukk', 'Tgl RUKK', 'date', 'sama/setelah SPK, sebelum mulai'], ['mulai', 'Tgl mulai pekerjaan (SPK)', 'date', 'setelah tanggal SPK'], ['selesai', 'Tgl selesai pekerjaan (SPK)', 'date', 'dalam masa berlaku SPK; juga akhir pengolahan lahan'],
+      ['mulai_olah', 'Tgl mulai pengolahan lahan', 'date', 'awal kehadiran HOK; antara tgl mulai dan selesai pekerjaan'],
       ['tgl_lap', 'Tgl laporan pelaksanaan', 'date'], ['no_bap', 'No. BA Pemeriksaan'], ['tgl_bap', 'Tgl BA Pemeriksaan', 'date'], ['no_bast', 'No. BAST'], ['tgl_bast', 'Tgl BAST', 'date'],
       ['no_kw', 'No. Kwitansi'], ['tgl_kw', 'Tgl Kwitansi', 'date'], ['tgl_tt', 'Tgl tanda terima upah pekerja', 'date']]],
     ['D. Realisasi', [['real_luas', 'Realisasi luas (ha)', 'angka', 'hasil pemeriksaan tim teknis']]]
@@ -371,13 +372,14 @@
 
   function tabHadir(head) {
     var d = S.detail, p = d.poktan, tulis = bolehTulis(p.kab);
-    if (!HOK.isISO(p.mulai) || !HOK.isISO(p.selesai)) {
-      render('poktan', head + '<div class="info">Isi <b>tanggal mulai</b> dan <b>tanggal selesai pekerjaan</b> di tab <a href="#/poktan/' + encodeURIComponent(p.id) + '/data">Data poktan</a> sebelum mengisi kehadiran.</div>');
+    var awalH = HOK.awalHadir(p);
+    if (!awalH || !HOK.isISO(p.selesai)) {
+      render('poktan', head + '<div class="info">Isi <b>tanggal mulai</b>, <b>tanggal selesai pekerjaan</b> dan <b>tanggal mulai pengolahan lahan</b> di tab <a href="#/poktan/' + encodeURIComponent(p.id) + '/data">Data poktan</a> sebelum mengisi kehadiran.</div>');
       return;
     }
     if (!S.hadir) S.hadir = { rows: d.pekerja.map(function (w) { return { id: w.id, nama: w.nama, nik: w.nik, alamat: w.alamat || '', hadir: w.hadir.slice() }; }), hal: 0, serverErr: null };
     var H = S.hadir;
-    var nHari = HOK.hari(p.selesai) - HOK.hari(p.mulai) + 1;
+    var nHari = Math.max(1, HOK.hari(p.selesai) - HOK.hari(awalH) + 1);
     var maxHal = Math.max(0, Math.ceil(nHari / HARI_PER_LAYAR) - 1);
     if (H.hal > maxHal) H.hal = maxHal;
 
@@ -387,7 +389,7 @@
       '<div class="baris"><button class="btn kecil" id="hal-prev" aria-label="Periode sebelumnya">‹</button><b id="hal-label" class="num"></b><button class="btn kecil" id="hal-next" aria-label="Periode berikutnya">›</button></div>' +
       (tulis ? '<div class="baris"><button class="btn kecil" id="btn-tempel">Tempel daftar pekerja</button><button class="btn kecil" id="btn-tambah">Tambah pekerja</button></div>' : '') + '</div>' +
       '<div class="hadir-wrap"><table class="hadir" id="tbl-hadir"></table></div>' +
-      '<div style="padding:10px 14px;border-top:1px solid var(--line)" class="legenda"><span><i style="background:var(--green)"></i>Hadir (1 HOK)</span><span><i style="background:var(--crit)"></i>Bentrok: NIK sama sudah hadir di poktan lain / di luar aturan</span><span><i style="box-shadow:inset 0 0 0 2px var(--crit);background:#F7F9F7"></i>NIK ini hadir di poktan lain pada tanggal itu</span><span><i style="background:#E3E8E5"></i>Di luar tanggal pekerjaan</span>' +
+      '<div style="padding:10px 14px;border-top:1px solid var(--line)" class="legenda"><span><i style="background:var(--green)"></i>Hadir (1 HOK)</span><span><i style="background:var(--crit)"></i>Bentrok: NIK sama sudah hadir di poktan lain / di luar aturan</span><span><i style="box-shadow:inset 0 0 0 2px var(--crit);background:#F7F9F7"></i>NIK ini hadir di poktan lain pada tanggal itu</span><span><i style="background:#E3E8E5"></i>Di luar masa pengolahan lahan</span>' +
       (tulis ? '<span>Klik tanggal di kepala kolom untuk menandai semua pekerja.</span>' : '') + '</div></section></div>' +
       '<aside class="samping"><div class="panel" style="display:flex;flex-direction:column;gap:10px"><div class="kecil muted" style="font-weight:600;letter-spacing:.08em">HOK POKTAN INI</div>' +
       '<div><span id="sum-hok" style="font-family:var(--f-disp);font-weight:600;font-size:40px;line-height:1"></span> <span class="muted" id="sum-target"></span></div><div class="bar" style="height:8px"><i id="sum-bar"></i></div>' +
@@ -422,7 +424,7 @@
 
     function gambarHadir() {
       var awal = H.hal * HARI_PER_LAYAR, tgl = [];
-      for (var i = 0; i < HARI_PER_LAYAR && awal + i < nHari; i++) tgl.push(U.tambahHari(p.mulai, awal + i));
+      for (var i = 0; i < HARI_PER_LAYAR && awal + i < nHari; i++) tgl.push(U.tambahHari(awalH, awal + i));
       $('#hal-label').textContent = U.rentang(tgl[0], tgl[tgl.length - 1]) + ' · hari ke-' + (awal + 1) + '–' + (awal + tgl.length) + ' dari ' + nHari;
       $('#hal-prev').disabled = H.hal === 0; $('#hal-next').disabled = H.hal === maxHal;
       var v = validasi(), errRow = {}, errTgl = {}, warnRow = {};
@@ -476,7 +478,7 @@
       var err = v.errors, ada = function (re) { return err.filter(function (x) { return re.test(x.pesan); }).length; };
       var nNik = err.filter(function (x) { return x.field === 'nik'; }).length, wNik = v.peringatan.filter(function (x) { return x.field === 'nik'; }).length, wGanda = v.peringatan.filter(function (x) { return x.bentrok; }).length;
       $('#cek-list').innerHTML =
-        cek(!ada(/luar tanggal/), 'Tanggal dalam masa pekerjaan', U.rentang(p.mulai, p.selesai)) +
+        cek(!ada(/luar masa pengolahan/), 'Tanggal dalam masa pengolahan lahan', U.rentang(awalH, p.selesai) + (HOK.isISO(p.mulai_olah) ? '' : ' (tgl mulai pengolahan belum diisi, dipakai tgl mulai pekerjaan)')) +
         cek(t <= tH, 'HOK tidak melebihi target', U.angka(t) + ' dari ' + U.angka(tH) + ' HOK') +
         cek(!nNik && !wNik, 'NIK 16 digit dan tidak ganda', nNik ? nNik + ' isian bermasalah' : (wNik ? wNik + ' peringatan struktur NIK' : 'semua NIK valid'), !nNik) +
         cek(!ada(/sudah tercatat hadir/) && !wGanda, 'Tidak ada hari ganda', ada(/sudah tercatat hadir/) ? ada(/sudah tercatat hadir/) + ' tanggal baru bentrok dengan poktan lain' : (wGanda ? wGanda + ' tanggal lama bentrok, perlu klarifikasi' : 'dicek ulang ke seluruh kabupaten saat disimpan'), !ada(/sudah tercatat hadir/)) +
@@ -665,7 +667,7 @@
   function tabCetak(head) {
     var d = S.detail, p = d.poktan, val = d.validasi.filter(function (x) { return x.level === 'error'; });
     var kosong = function (kode) {
-      var butuh = { F01: ['no_spk', 'tgl_spk', 'nik_ketua', 'norek'], F02: ['tgl_sptjm', 'nik_ketua'], F03: ['tgl_rukk'], F05: ['mulai', 'selesai'], F06: ['tgl_lap'], F07: ['no_bap', 'tgl_bap'], F08: ['no_bast', 'tgl_bast', 'no_bap'], F09: ['tgl_tt'], F11: ['no_kw', 'tgl_kw'] }[kode] || [];
+      var butuh = { F01: ['no_spk', 'tgl_spk', 'nik_ketua', 'norek'], F02: ['tgl_sptjm', 'nik_ketua'], F03: ['tgl_rukk'], F05: ['mulai', 'selesai', 'mulai_olah'], F06: ['tgl_lap'], F07: ['no_bap', 'tgl_bap'], F08: ['no_bast', 'tgl_bast', 'no_bap'], F09: ['tgl_tt'], F11: ['no_kw', 'tgl_kw'] }[kode] || [];
       return butuh.filter(function (k) { return !String(p[k] || '').trim(); });
     };
     var namaF = {}; FIELD.forEach(function (s) { s[1].forEach(function (f) { namaF[f[0]] = f[1]; }); });

@@ -21,7 +21,7 @@ var FORM = (function () {
   // bentuk di tengah kalimat: "kelompok tani Gandul Mulyo" / "Koperasi Tani Tebu Mandiri"
   function lembagaKalimat(nama) { var l = lembaga(nama); return /^Kelompok Tani /.test(l) ? 'kelompok tani ' + l.slice(14) : l; }
   // tanggal pelaksanaan = rentang hadir sebenarnya (sama untuk target dan realisasi)
-  function tglPelaksanaan(p) { var h = p.hit || {}; return U.rentang(h.hadirAwal || p.mulai, h.hadirAkhir || p.selesai); }
+  function tglPelaksanaan(p) { var h = p.hit || {}; return U.rentang(h.hadirAwal || HOK.awalHadir(p), h.hadirAkhir || p.selesai); }
 
   function judulBlok(lines) { return lines.map(function (t, i) { return '<h' + (i === 0 ? 1 : 2) + '>' + t + '</h' + (i === 0 ? 1 : 2) + '>'; }).join(''); }
   function kv(rows) {
@@ -133,10 +133,11 @@ var FORM = (function () {
   // ---------------------------------------------------------------- F05 Daftar hadir (15 hari × 20 pekerja per halaman)
   function periodeHadir(F) {
     var p = F.p, h = p.hit;
-    if (!HOK.isISO(p.mulai)) return null;
-    var akhir = HOK.isISO(p.selesai) ? p.selesai : p.mulai;
+    var m0 = HOK.awalHadir(p); // awal = tgl mulai pengolahan lahan, akhir = tgl selesai pekerjaan
+    if (!m0) return null;
+    var akhir = HOK.isISO(p.selesai) ? p.selesai : m0;
     if (h.hadirAkhir && h.hadirAkhir > akhir) akhir = h.hadirAkhir;
-    return { mulai: p.mulai, akhir: akhir, jumlah: HOK.hari(akhir) - HOK.hari(p.mulai) + 1 };
+    return { mulai: m0, akhir: akhir, jumlah: HOK.hari(akhir) - HOK.hari(m0) + 1 };
   }
   function F05(F) {
     var per = periodeHadir(F), out = '';

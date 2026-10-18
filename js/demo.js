@@ -54,7 +54,7 @@ var DEMO = (function () {
         no_cpcl: 'Contoh/SK-CPCL/2026 (Tahap I)', tgl_cpcl: '2026-02-02', diubah: waktu, oleh: 'demo' };
       if (tahap >= 1) Object.assign(p, { nik_ketua: kodeNIK[d[0]] + '0115058' + ('0000' + (100 + i)).slice(-5), bank: 'Bank Contoh', norek: '00' + (1234500 + i), namarek: d[2].toUpperCase(),
         no_spk: (i + 1) + '/SPK-HOK/2026', tgl_spk: U.tambahHari(mulai, -4), tempat_spk: 'Balai Desa ' + d[4], jalan_spk: 'Jl. Contoh No. ' + (i + 1), spk_sd: '2026-11-30',
-        tgl_sptjm: U.tambahHari(mulai, -4), tgl_rukk: U.tambahHari(mulai, -3), mulai: mulai, selesai: selesai });
+        tgl_sptjm: U.tambahHari(mulai, -4), tgl_rukk: U.tambahHari(mulai, -3), mulai: U.tambahHari(mulai, -2), mulai_olah: mulai, selesai: selesai });
       if (tahap >= 3) Object.assign(p, { tgl_lap: U.tambahHari(selesai, 1), no_bap: (i + 1) + '/BAP/2026', tgl_bap: U.tambahHari(selesai, 2), real_luas: String(d[6]) });
       if (tahap >= 4) Object.assign(p, { no_bast: (i + 1) + '/BAST/2026', tgl_bast: U.tambahHari(selesai, 4) });
       if (tahap >= 5) Object.assign(p, { no_kw: (i + 1) + '/KW/2026', tgl_kw: U.tambahHari(selesai, 6), tgl_tt: U.tambahHari(selesai, 8) });
