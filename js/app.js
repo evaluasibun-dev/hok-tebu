@@ -342,8 +342,9 @@
         if (err.length) { $('#f-galat').innerHTML = galat({ pesan: 'Perbaiki ' + err.length + ' isian bertanda merah sebelum menyimpan.', rincian: hasil }); var el = $('.fld.salah', form); if (el) el.scrollIntoView({ block: 'center' }); return; }
         var data = baca(); if (!baru) data.id = p.id;
         var btn = this; btn.disabled = true; btn.textContent = 'Menyimpan…';
-        API.panggil('poktan.simpan', { data: data }).then(function (r) {
+        API.panggil('poktan.simpan', { data: data, versi: baru ? '' : d.versi }).then(function (r) {
           btn.disabled = false; btn.textContent = 'Simpan data poktan';
+          if (!r.ok && r.kode === 'BENTROK') { dialogBentrok(r, p.id, 'data'); return; }
           if (!r.ok) { $('#f-galat').innerHTML = galat(r); U.toast(r.pesan, true); return; }
           S.kotor = false; $('#f-galat').innerHTML = '';
           U.toast('Data poktan ' + r.data.id + ' tersimpan');
@@ -500,8 +501,9 @@
       var v = validasi();
       if (v.errors.length) { U.toast('Perbaiki ' + v.errors.length + ' isian bertanda merah dulu', true); var el = $('#tbl-hadir tr.salah'); if (el) el.scrollIntoView({ block: 'center' }); return; }
       var btn = $('#btn-simpan-hadir'); btn.disabled = true; btn.textContent = 'Menyimpan dan memeriksa…';
-      API.panggil('pekerja.simpan', { id_poktan: p.id, rows: H.rows }).then(function (r) {
+      API.panggil('pekerja.simpan', { id_poktan: p.id, rows: H.rows, versi: d.versiPekerja }).then(function (r) {
         btn.disabled = false; btn.textContent = 'Simpan kehadiran';
+        if (!r.ok && r.kode === 'BENTROK') { dialogBentrok(r, p.id, 'hadir'); return; }
         if (!r.ok) {
           if (r.rincian && r.rincian.errors) { H.serverErr = r.rincian.errors; gambarHadir(); }
           $('#hadir-galat').innerHTML = galat(r); U.toast(r.pesan, true); return;
@@ -512,6 +514,20 @@
         pastikanBoot(true).then(function () { return muatDetail(p.id, true); }).then(function () { S.hadir = null; viewPoktan(p.id, 'hadir'); if (S.hadir) { S.hadir.hal = hal; } });
       });
     }
+  }
+
+  // perubahan bentrok dengan operator lain: tawarkan muat ulang
+  function dialogBentrok(r, id, tab) {
+    U.dialog('<h2>Data sudah diubah orang lain</h2><div class="galat">' + e(r.pesan) + '</div>' +
+      '<p class="kecil muted" style="margin:10px 0">Perubahan Anda di layar ini <b>belum tersimpan</b>. Setelah dimuat ulang, isian terbaru dari rekan Anda tampil; ulangi perubahan Anda di atasnya lalu simpan lagi. ' +
+      'Bila perlu, pilih "Tetap di halaman ini" untuk mencatat dulu isian Anda.</p>' +
+      '<div class="baris"><button class="btn utama" id="bentrok-muat">Muat ulang data terbaru</button><button class="btn" id="bentrok-tetap">Tetap di halaman ini</button></div>', function (dl) {
+      $('#bentrok-tetap', dl).onclick = U.tutupDialog;
+      $('#bentrok-muat', dl).onclick = function () {
+        U.tutupDialog(); S.kotor = false; S.hadir = null;
+        pastikanBoot(true).then(function () { return muatDetail(id, true); }).then(function (okk) { if (okk) viewPoktan(id, tab); });
+      };
+    });
   }
 
   // ------------------------------------------------------------------ dokumen & foto

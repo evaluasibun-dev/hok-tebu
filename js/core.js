@@ -499,6 +499,16 @@ var HOK = (function () {
   }
 
   // ------------------------------------------------------------------ respons
+  // versi data untuk mencegah dua operator saling menimpa: sidik isi baris (tanpa berkas)
+  function hashTeks(t) { var h = 0x811c9dc5; for (var i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0; } return ('0000000' + h.toString(16)).slice(-8); }
+  function versiPoktan(p) { return hashTeks(TABEL.POKTAN.filter(function (k) { return k !== 'dok' && k !== 'folder_id'; }).map(function (k) { return s(p[k]); }).join('\u0001')); }
+  function versiPekerja(list) {
+    return hashTeks((list || []).map(function (w) { return [w.id, w.nama, w.nik, w.alamat, s(w.hadir), w.diubah, w.oleh].map(s).join('\u0002'); }).sort().join('\u0001'));
+  }
+  function pesanBentrok(apa, oleh, diubah) {
+    return apa + ' baru saja diubah oleh ' + (oleh || 'operator lain') + (diubah ? ' (' + diubah.slice(11, 16) + ' WIB)' : '') +
+      ' setelah layar Anda dibuka. Muat ulang dulu agar perubahannya terlihat, lalu ulangi perubahan Anda.';
+  }
   function ok(data) { return { ok: true, data: data }; }
   function gagal(kode, pesan, rincian) { return { ok: false, kode: kode, pesan: pesan, rincian: rincian || null }; }
   function catat(env, user, aksi, rincian) {
@@ -575,7 +585,9 @@ var HOK = (function () {
       provinsi: ctx.provBy[(ctx.kabBy[p.kab] || {}).provinsi] || {},
       temuan: hit.temuan.filter(function (t) { return t.id_poktan === p.id; }),
       validasi: validasiPoktan(p, ctx),
-      dok: parseJSON(p.dok, { rek: [], geo: [], ktp: [], ttd: [] })
+      dok: parseJSON(p.dok, { rek: [], geo: [], ktp: [], ttd: [] }),
+      versi: versiPoktan(p),
+      versiPekerja: versiPekerja(pek)
     });
   }
 
@@ -593,6 +605,8 @@ var HOK = (function () {
         var c = cariPoktan(d.id, user, ctx);
         if (c.err) return c.err;
         lama = c.p;
+        if (req.versi && s(req.versi) !== versiPoktan(lama))
+          return gagal('BENTROK', pesanBentrok('Data poktan ' + lama.id, lama.oleh, lama.diubah), { oleh: s(lama.oleh), diubah: s(lama.diubah) });
       }
       var kab = lama ? lama.kab : s(d.kab);
       if (user.peran === 'kabupaten') kab = user.kab;
@@ -612,7 +626,7 @@ var HOK = (function () {
         if (pk.length) env.store.upsert('PEKERJA', pk);
       }
       catat(env, user, lama ? 'ubah poktan' : 'tambah poktan', p.id + ' ' + p.poktan);
-      return ok({ id: p.id, peringatan: val });
+      return ok({ id: p.id, peringatan: val, versi: versiPoktan(p) });
     });
   }
 
@@ -637,6 +651,13 @@ var HOK = (function () {
       if (c.err) return c.err;
       var p = c.p;
       if (!bolehTulisKab(user, p.kab)) return gagal('AKSES', 'Peran ' + user.peran + ' tidak boleh mengubah kehadiran');
+      var pekLama = ctx.pekerjaPer[p.id] || [];
+      if (req.versi && s(req.versi) !== versiPekerja(pekLama)) {
+        var pu = null;
+        try { pu = JSON.parse(env.cache.get('pekerja_ubah_' + p.id) || 'null'); } catch (x) { pu = null; }
+        pu = pu || { oleh: 'operator lain', diubah: '' };
+        return gagal('BENTROK', pesanBentrok('Daftar pekerja dan kehadiran poktan ' + p.id, pu.oleh, pu.diubah), pu);
+      }
       var rows = (req.rows || []).map(function (r) {
         var hd = {}; (r.hadir || []).forEach(function (x) { hd[s(x)] = 1; });
         return { id: s(r.id), nama: s(r.nama), nik: s(r.nik).replace(/\s+/g, ''), alamat: s(r.alamat), hadir: Object.keys(hd).sort() };
@@ -656,10 +677,11 @@ var HOK = (function () {
       });
       var hapus = Object.keys(lama).filter(function (id) { return !dipakai[id]; });
       if (simpan.length) env.store.upsert('PEKERJA', simpan);
+      if (simpan.length || hapus.length) { try { env.cache.put('pekerja_ubah_' + p.id, JSON.stringify({ oleh: user.nama, diubah: waktuJakarta(env) }), 21600); } catch (x) { /* abaikan */ } }
       if (hapus.length) env.store.remove('PEKERJA', hapus);
       // ringkasan dokumen bergantung pada daftar NIK, tandai diubah
       catat(env, user, 'simpan kehadiran', p.id + ': ' + rows.length + ' pekerja, ' + v.total + ' HOK, ' + simpan.length + ' baris berubah, ' + hapus.length + ' dihapus');
-      return ok({ total: v.total, tHOK: v.tHOK, peringatan: v.peringatan, berubah: simpan.length, dihapus: hapus.length });
+      return ok({ total: v.total, tHOK: v.tHOK, peringatan: v.peringatan, berubah: simpan.length, dihapus: hapus.length, versi: versiPekerja(konteks(env).pekerjaPer[p.id] || []) });
     });
   }
 
