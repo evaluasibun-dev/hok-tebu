@@ -790,7 +790,7 @@
       '<div class="baris" style="margin-top:12px"><button class="btn utama" id="kd-simpan" type="button">Ganti kode akses saya</button></div></section>';
     if (u.peran === 'pusat') {
       isi += '<section class="panel"><div class="panel-h"><h2>Pengaturan umum</h2></div><form id="f-set" class="form-grid">' +
-        [['tahun', 'Tahun anggaran'], ['no_dipa', 'Nomor DIPA'], ['tgl_dipa', 'Tanggal DIPA', 'date'], ['kpa', 'Pemberi dana (kwitansi)'], ['std_hokha', 'Standar HOK/ha'], ['batas_hari_bulan', 'Batas hari kerja per pekerja per bulan (kosong = tidak dibatasi)'], ['unit_pusat', 'Unit pengelola']].map(function (f) {
+        [['tahun', 'Tahun anggaran'], ['no_dipa', 'Nomor DIPA'], ['tgl_dipa', 'Tanggal DIPA', 'date'], ['kpa', 'Pemberi dana (kwitansi)'], ['std_hokha', 'Standar HOK/ha'], ['batas_hari_bulan', 'Batas hari kerja per pekerja per bulan (kosong = tidak dibatasi)'], ['batas_hari_spk', 'Batas lama pekerjaan SPK, hari (kosong = tidak dibatasi)'], ['unit_pusat', 'Unit pengelola']].map(function (f) {
           return '<div class="fld"><label for="s-' + f[0] + '">' + f[1] + '</label><input id="s-' + f[0] + '" name="' + f[0] + '" type="' + (f[2] || 'text') + '" value="' + e(st[f[0]] || '') + '"></div>';
         }).join('') + '</form>' +
         '<h3 style="margin:16px 0 8px">Standar upah HOK per provinsi (Rp/HOK)</h3><div class="tbl-wrap"><table class="t"><thead><tr><th>Provinsi</th><th>Kode</th><th>Perluasan</th><th>Bongkar Ratoon</th></tr></thead><tbody>' +
