@@ -59,7 +59,7 @@ var DEMO = (function () {
       if (tahap >= 4) Object.assign(p, { no_bast: (i + 1) + '/BAST/2026', tgl_bast: U.tambahHari(selesai, 4) });
       if (tahap >= 5) Object.assign(p, { no_kw: (i + 1) + '/KW/2026', tgl_kw: U.tambahHari(selesai, 6), tgl_tt: U.tambahHari(selesai, 8) });
       if (tahap >= 2) {
-        var target = d[6] * 40, isi = tahap >= 3 ? target : Math.round(target * (0.35 + r() * 0.4)), nPek = Math.max(4, Math.round(isi / Math.min(dur, 16)));
+        var target = Math.floor(d[6] * 40), isi = tahap >= 3 ? target : Math.round(target * (0.35 + r() * 0.4)), nPek = Math.max(4, Math.round(isi / Math.min(dur, 16)));
         var sisa = isi;
         for (var w = 0; w < nPek && sisa > 0; w++) {
           var hari = Math.min(sisa, Math.ceil(isi / nPek), dur), awal = Math.floor(r() * (dur - hari + 1)), hd = [];

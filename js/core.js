@@ -6,7 +6,7 @@
 var HOK = (function () {
   'use strict';
 
-  var VERSI = '1.5.2';
+  var VERSI = '1.5.3';
 
   // ------------------------------------------------------------------ skema tabel
   var TABEL = {
@@ -67,6 +67,10 @@ var HOK = (function () {
 
   // ------------------------------------------------------------------ util
   function s(v) { return v === null || v === undefined ? '' : String(v).trim(); }
+  // pembulatan 2 angka di belakang koma (luas dan HOK boleh pecahan, mis. 0,5 ha × 15 = 7,5 HOK)
+  function r2(x) { return Math.round((Number(x) || 0) * 100 + 1e-9) / 100; }
+  function ak(x) { return String(r2(x)).replace('.', ','); } // angka dengan koma desimal untuk pesan
+  function desimal2(v) { var x = num(v); return Math.abs(x * 100 - Math.round(x * 100)) < 1e-6; }
   function num(v) {
     var t = s(v);
     if (!t) return 0;
@@ -234,6 +238,8 @@ var HOK = (function () {
     if (!KEG[p.keg]) E('keg', 'Pilih kegiatan: Perluasan Tanaman Tebu atau Bongkar Ratoon');
     if (!ctx.kabBy[p.kab]) E('kab', 'Kabupaten tidak terdaftar');
     if (!(num(p.luas) > 0)) E('luas', 'Luas target harus lebih dari 0 ha');
+    else if (!desimal2(p.luas)) E('luas', 'Luas maksimal 2 angka di belakang koma (contoh 0,5 atau 1,25 ha)');
+    if (s(p.real_luas) && !desimal2(p.real_luas)) E('real_luas', 'Realisasi luas maksimal 2 angka di belakang koma');
     FIELD_TANGGAL.forEach(function (f) { if (s(p[f]) && !isISO(p[f])) E(f, 'Format tanggal tidak valid'); });
     if (s(p.nik_ketua)) {
       var nk = cekNik(p.nik_ketua);
@@ -271,14 +277,14 @@ var HOK = (function () {
     // kehadiran yang sudah tercatat harus tetap di dalam rentang dan tidak melebihi target
     var pek = opsi.pekerja || ctx.pekerjaPer[p.id] || [];
     if (pek.length) {
-      var tHOK = Math.round(num(p.luas) * t.hokha), rHOK = 0, luar = 0;
+      var tHOK = r2(num(p.luas) * t.hokha), rHOK = 0, luar = 0;
       pek.forEach(function (w) {
         var hd = w._hadir || parseHadir(w.hadir);
         rHOK += hd.length;
         hd.forEach(function (x) { if ((awalHadir(p) && x < awalHadir(p)) || (d('selesai') && x > d('selesai'))) luar++; });
       });
       if (luar) E(d('mulai_olah') ? 'mulai_olah' : 'selesai', luar + ' hari kehadiran pekerja berada di luar masa pengolahan lahan (tgl mulai pengolahan – tgl selesai pekerjaan)');
-      if (tHOK && rHOK > tHOK) E('luas', 'Realisasi HOK (' + rHOK + ') melebihi target HOK (' + tHOK + ')');
+      if (tHOK && rHOK > tHOK) E('luas', 'Realisasi HOK (' + rHOK + ') melebihi target HOK (' + ak(tHOK) + ')');
     }
     // NIK ketua / rekening dipakai poktan lain (nama poktan berbeda)
     if (opsi.lintas !== false) {
@@ -301,7 +307,7 @@ var HOK = (function () {
   function validasiPekerja(p, rows, ctx, opsi) {
     var errors = [], warns = [], lama = {};
     ((opsi && opsi.lama) || []).forEach(function (w) { var k = s(w.nik); lama[k] = lama[k] || {}; (w._hadir || w.hadir || []).forEach(function (x) { lama[k][x] = 1; }); });
-    var t = tarif(p, ctx), tHOK = Math.round(num(p.luas) * t.hokha);
+    var t = tarif(p, ctx), tHOK = r2(num(p.luas) * t.hokha);
     var mulai = awalHadir(p), selesai = isISO(p.selesai) ? p.selesai : null;
     var lain = ctx.pekerja.filter(function (w) { return w.id_poktan !== p.id; });
     var idx = indeksHadir(lain);
@@ -342,7 +348,7 @@ var HOK = (function () {
         });
       }
     });
-    if (tHOK && total > tHOK) errors.push({ row: -1, field: 'hadir', pesan: 'Total HOK (' + total + ') melebihi target HOK poktan (' + tHOK + ')' });
+    if (tHOK && total > tHOK) errors.push({ row: -1, field: 'hadir', pesan: 'Total HOK (' + total + ') melebihi target HOK poktan (' + ak(tHOK) + ' = ' + ak(num(p.luas)) + ' ha × ' + ak(t.hokha) + ' HOK/ha)' });
     return { errors: errors, peringatan: warns, total: total, tHOK: tHOK };
   }
 
@@ -385,7 +391,7 @@ var HOK = (function () {
     ctx.poktan.forEach(function (p) {
       var pek = ctx.pekerjaPer[p.id] || [];
       var t = tarif(p, ctx);
-      var tHOK = Math.round(num(p.luas) * t.hokha), tBiaya = tHOK * t.upah;
+      var tHOK = r2(num(p.luas) * t.hokha), tBiaya = Math.round(tHOK * t.upah);
       var rHOK = 0, minD = null, maxD = null, niks = [], seen = {}, potPek = 0;
       var issues = validasiPoktan(p, ctx, { pekerja: pek }).map(function (x) {
         return { objek: 'Poktan', jenis: jenisDari(x), level: x.level, pesan: x.pesan, rp: 0 };
@@ -1155,7 +1161,7 @@ var HOK = (function () {
     FIELD_TANGGAL: FIELD_TANGGAL, MIME_OK: MIME_OK,
     handle: handle, ukurKecepatan: ukurKecepatan, setupAwal: setupAwal, pindaiDokumen: pindaiDokumen, buatPengguna: buatPengguna,
     // dipakai juga di browser untuk validasi langsung
-    cekNik: cekNik, isISO: isISO, awalHadir: awalHadir, hari: hari, dariHari: dariHari, num: num, tarif: tarif, kodeKeg: kodeKeg, idLokal: idLokal,
+    cekNik: cekNik, isISO: isISO, awalHadir: awalHadir, hari: hari, dariHari: dariHari, num: num, r2: r2, tarif: tarif, kodeKeg: kodeKeg, idLokal: idLokal,
     namaFolder: namaFolder, validasiPoktan: validasiPoktan, validasiPekerja: validasiPekerja, sha256: sha256, hashKode: hashKode,
     settingObj: settingObj, by: by, tglPendek: tglPendek, rp: rp
   };

@@ -6,7 +6,7 @@ var U = (function () {
 
   function esc(v) { return String(v === null || v === undefined ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function n(v) { return HOK.num(v); }
-  function angka(v, d) { return new Intl.NumberFormat('id-ID', { maximumFractionDigits: d === undefined ? 0 : d }).format(Number(v) || 0); }
+  function angka(v, d) { return new Intl.NumberFormat('id-ID', { maximumFractionDigits: d === undefined ? 2 : d }).format(Number(v) || 0); }
   function rp(v) { return 'Rp' + angka(Math.round(Number(v) || 0)); }
   function ha(v) { return angka(n(v), 2); }
   function persen(a, b) { return b ? new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(a / b * 100) + '%' : '–'; }
