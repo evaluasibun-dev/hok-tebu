@@ -10,19 +10,19 @@ var FORM = (function () {
   function tempatTgl(F, d) { return e(F.p.kab) + ', ' + U.tgl(d); }
   function luasTeks(v) { return U.n(v) ? U.ha(v) + ' ha' : '…… ha'; }
 
-  // "Kelompok Tani Gandul Mulyo" / "Gabungan Kelompok Tani ..." / "Koperasi Tebu ..." sesuai jenis kelompok;
+  // "Kelompok Tani Gandul Mulyo" / "Gabungan Kelompok Tani ..." / "Koperasi Tani ..." sesuai jenis kelompok;
   // nama yang sudah diawali sebutan lembaga dipakai apa adanya
   function lembaga(nama, jenis) {
     var n = String(nama || '').trim(), j = HOK.jenisKel({ jenis_kel: jenis });
     if (!n) return j.label + ' ……………………';
     n = n.replace(/^(kt|poktan|gapoktan)\.?\s+/i, '');                     // singkatan dibuang, diganti sebutan sesuai jenis
-    if (j.nama === 'Koperasi Tebu' && /^(koperasi|kptr|kud|kop\.)/i.test(n)) return n;
+    if (j.nama === 'Koperasi Tani' && /^(koperasi|kptr|kud|kop\.)/i.test(n)) return n;
     if (j.nama === 'Gabungan Kelompok Tani' && /^gabungan\s+kelompok\s+tani\b/i.test(n)) return n;
     if (j.nama === 'Kelompok Tani' && /^kelompok\s+tani\b/i.test(n)) return n;
     n = n.replace(/^(gabungan\s+kelompok\s+tani|kelompok\s+tani)\s+/i, '');   // sebutan lain yang tidak cocok dengan jenis
     return j.label + ' ' + n;
   }
-  // bentuk di tengah kalimat: "kelompok tani Gandul Mulyo" / "koperasi tebu Manis Jaya"
+  // bentuk di tengah kalimat: "kelompok tani Gandul Mulyo" / "koperasi tani Manis Jaya"
   function lembagaKalimat(nama, jenis) { var l = lembaga(nama, jenis), j = HOK.jenisKel({ jenis_kel: jenis }); return l.indexOf(j.label + ' ') === 0 ? j.kalimat + l.slice(j.label.length) : l; }
   function JK(F) { return HOK.jenisKel(F.p || F); }
   // tanggal pelaksanaan = rentang hadir sebenarnya (sama untuk target dan realisasi)
