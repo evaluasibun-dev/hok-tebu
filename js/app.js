@@ -397,7 +397,7 @@
           if (x.level === 'error') { fl.classList.add('salah'); ps.className = 'pesan'; } else if (!ps.textContent) ps.className = 'pesan w';
           ps.textContent = ps.textContent ? ps.textContent + '; ' + x.pesan : x.pesan;
         });
-        var t = HOK.tarif(o, ctxLokal()), tHOK = HOK.r2(HOK.num(o.luas) * t.hokha);
+        var t = HOK.tarif(o, ctxLokal()), tHOK = HOK.r3(HOK.num(o.luas) * t.hokha);
         $('#info-tarif').innerHTML = U.angka(t.hokha) + ' HOK/ha × ' + U.rp(t.upah) + '/HOK<br><b>Target ' + U.angka(tHOK) + ' HOK · nilai SPK ' + U.rp(tHOK * t.upah) + '</b>';
         return hasil;
       };

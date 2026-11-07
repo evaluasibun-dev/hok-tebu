@@ -209,7 +209,7 @@ var EKSPOR = (function () {
   var BINGKAI = { top: TIPIS, left: TIPIS, bottom: TIPIS, right: TIPIS };
   var ABU = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE7E6E6' } };
   var RP = '#,##0';
-  function FH(v) { return Math.abs(v - Math.round(v)) > 1e-9 ? '#,##0.00' : '#,##0'; } // format HOK: 2 desimal bila pecahan
+  function FH(v) { var k = 0; while (k < 3 && Math.abs(v * Math.pow(10, k) - Math.round(v * Math.pow(10, k))) > 1e-6) k++; return k ? '#,##0.' + '000'.slice(0, k) : '#,##0'; } // format HOK: sampai 3 desimal
 
   function lembar(wb, nama, lebar, lanskap) {
     var ws = wb.addWorksheet(nama.slice(0, 31), {
@@ -227,6 +227,9 @@ var EKSPOR = (function () {
     if (o.border) c.border = BINGKAI;
     if (o.fill) c.fill = ABU;
     if (o.fmt) c.numFmt = o.fmt;
+    // rupiah pecahan (HOK desimal × upah) ditampilkan dengan desimalnya, tidak dibulatkan
+    var nv = v && typeof v === 'object' ? v.result : v;
+    if (o.fmt === RP && typeof nv === 'number' && Math.abs(nv - Math.round(nv)) > 1e-9) c.numFmt = '#,##0.###';
     return c;
   }
   function gabung(ws, r1, c1, r2, c2) { ws.mergeCells(r1, c1, r2, c2); }
@@ -285,9 +288,9 @@ var EKSPOR = (function () {
     sel(ws, 'A' + b1, 1, { h: 'center', border: true }); sel(ws, 'B' + b1, 'Tenaga Kerja', { border: true });
     ['C', 'D', 'E', 'F'].forEach(function (c) { sel(ws, c + b1, '', { border: true }); });
     sel(ws, 'A' + b2, '', { border: true }); sel(ws, 'B' + b2, '- ' + F.keg.jenis, { border: true });
-    sel(ws, 'C' + b2, U.n(p.luas), { h: 'center', border: true, fmt: '0.00#' }); sel(ws, 'D' + b2, U.n(h.hokha), { h: 'center', border: true });
+    sel(ws, 'C' + b2, U.n(p.luas), { h: 'center', border: true, fmt: '0.0##' }); sel(ws, 'D' + b2, U.n(h.hokha), { h: 'center', border: true });
     sel(ws, 'E' + b2, U.n(h.upah), { h: 'right', border: true, fmt: RP });
-    sel(ws, 'F' + b2, { formula: 'ROUND(ROUND(C' + b2 + '*D' + b2 + ',2)*E' + b2 + ',0)', result: h.tBiaya }, { h: 'right', border: true, fmt: RP });
+    sel(ws, 'F' + b2, { formula: 'ROUND(C' + b2 + '*D' + b2 + ',3)*E' + b2, result: h.tBiaya }, { h: 'right', border: true, fmt: RP });
     gabung(ws, bj, 1, bj, 5); sel(ws, 'A' + bj, 'JUMLAH', { h: 'center', bold: true, border: true });
     ['B', 'C', 'D', 'E'].forEach(function (c) { ws.getCell(c + bj).border = BINGKAI; });
     sel(ws, 'F' + bj, { formula: 'SUM(F' + b1 + ':F' + b2 + ')', result: h.tBiaya }, { h: 'right', bold: true, border: true, fmt: RP });
@@ -359,9 +362,9 @@ var EKSPOR = (function () {
     var o = { border: true, kecil: true, h: 'center', wrap: true };
     var sesuai = h.rHOK && h.rHOK <= h.tHOK && rl <= U.n(p.luas) && h.rBiaya <= h.tBiaya ? 'SESUAI' : (h.rHOK ? 'TIDAK SESUAI' : '');
     sel(ws, 'A' + d, 1, o); sel(ws, 'B' + d, F.keg.jenis, Object.assign({}, o, { h: 'left' })); sel(ws, 'C' + d, tglP, o);
-    sel(ws, 'D' + d, U.n(p.luas), Object.assign({}, o, { fmt: '0.00#' })); sel(ws, 'E' + d, h.tHOK, Object.assign({}, o, { fmt: FH(h.tHOK) }));
+    sel(ws, 'D' + d, U.n(p.luas), Object.assign({}, o, { fmt: '0.0##' })); sel(ws, 'E' + d, h.tHOK, Object.assign({}, o, { fmt: FH(h.tHOK) }));
     sel(ws, 'F' + d, h.tBiaya, Object.assign({}, o, { h: 'right', fmt: RP })); sel(ws, 'G' + d, tglP, o);
-    sel(ws, 'H' + d, rl || null, Object.assign({}, o, { fmt: '0.00#' }));
+    sel(ws, 'H' + d, rl || null, Object.assign({}, o, { fmt: '0.0##' }));
     sel(ws, 'I' + d, { formula: 'IF(D' + d + '=0,"",H' + d + '/D' + d + ')', result: U.n(p.luas) ? rl / U.n(p.luas) : '' }, Object.assign({}, o, { fmt: '0%' }));
     sel(ws, 'J' + d, h.rHOK, Object.assign({}, o, { fmt: RP }));
     sel(ws, 'K' + d, { formula: 'IF(E' + d + '=0,"",J' + d + '/E' + d + ')', result: h.tHOK ? h.rHOK / h.tHOK : '' }, Object.assign({}, o, { fmt: '0%' }));
