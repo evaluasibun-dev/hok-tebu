@@ -332,16 +332,16 @@ var EKSPOR = (function () {
       r = h3 + 1;
       var r0 = r;
       pek.forEach(function (w, i) {
-        var set = {}; (w.hadir || []).forEach(function (x) { set[x] = 1; });
+        var set = {}, nl = w.nilai || {}; (w.hadir || []).forEach(function (x) { set[x] = nl[x] !== undefined ? Number(nl[x]) : 1; });
         sel(ws, 'A' + r, i + 1, { h: 'center', border: true, kecil: true }); sel(ws, 'B' + r, w.nama, { border: true, kecil: true });
         sel(ws, 'C' + r, String(w.nik), { border: true, kecil: true, fmt: '@' });
-        tgl.forEach(function (d, j) { sel(ws, kol(4 + j) + r, set[d] ? 1 : null, { h: 'center', border: true, kecil: true }); });
-        sel(ws, kol(nKol) + r, { formula: 'SUM(D' + r + ':' + kol(3 + n) + r + ')', result: tgl.filter(function (d) { return set[d]; }).length }, { h: 'center', border: true, bold: true, kecil: true });
+        tgl.forEach(function (d, j) { sel(ws, kol(4 + j) + r, set[d] ? set[d] : null, { h: 'center', border: true, kecil: true }); });
+        sel(ws, kol(nKol) + r, { formula: 'SUM(D' + r + ':' + kol(3 + n) + r + ')', result: HOK.hokW(w, function (x) { return tgl.indexOf(x) >= 0; }) }, { h: 'center', border: true, bold: true, kecil: true });
         r++;
       });
       gabung(ws, r, 1, r, 3 + n); sel(ws, 'A' + r, 'JUMLAH HOK', { h: 'center', bold: true, border: true, kecil: true });
       for (var c2 = 2; c2 <= 3 + n; c2++) ws.getCell(kol(c2) + r).border = BINGKAI;
-      var tot = pek.reduce(function (s, w) { return s + (w.hadir || []).filter(function (x) { return tgl.indexOf(x) >= 0; }).length; }, 0);
+      var tot = HOK.r3(pek.reduce(function (s, w) { return s + HOK.hokW(w, function (x) { return tgl.indexOf(x) >= 0; }); }, 0));
       sel(ws, kol(nKol) + r, { formula: pek.length ? 'SUM(' + kol(nKol) + r0 + ':' + kol(nKol) + (r - 1) + ')' : '0', result: tot }, { h: 'center', bold: true, border: true, kecil: true });
       ttd(ws, r + 2, nKol, F, nv, tgl[tgl.length - 1]);
     }
@@ -397,17 +397,17 @@ var EKSPOR = (function () {
     gabung(ws, r, 7, r, 8); H('G' + r, 'TANDA TANGAN'); ws.getCell('H' + r).border = BINGKAI; ws.getRow(r).height = 32;
     var r0 = r + 1; r++;
     pek.forEach(function (w, i) {
-      var no = i + 1, hr = (w.hadir || []).length, o = { border: true, kecil: true };
+      var no = i + 1, hr = HOK.hokW(w), o = { border: true, kecil: true };
       sel(ws, 'A' + r, no, Object.assign({ h: 'center' }, o)); sel(ws, 'B' + r, w.nama, o); sel(ws, 'C' + r, String(w.nik), Object.assign({ fmt: '@' }, o));
       sel(ws, 'D' + r, hr, Object.assign({ h: 'center' }, o)); sel(ws, 'E' + r, upah, Object.assign({ h: 'right', fmt: RP }, o));
-      sel(ws, 'F' + r, { formula: 'D' + r + '*E' + r, result: hr * upah }, Object.assign({ h: 'right', fmt: RP }, o));
+      sel(ws, 'F' + r, { formula: 'D' + r + '*E' + r, result: HOK.r3(hr * upah) }, Object.assign({ h: 'right', fmt: RP }, o));
       sel(ws, 'G' + r, no % 2 ? no + '. ……………' : '', o); sel(ws, 'H' + r, no % 2 ? '' : no + '. ……………', o);
       ws.getRow(r).height = 22; r++;
     });
     gabung(ws, r, 1, r, 3); sel(ws, 'A' + r, 'JUMLAH', { h: 'center', bold: true, border: true, kecil: true }); ['B', 'C', 'E', 'G', 'H'].forEach(function (c) { ws.getCell(c + r).border = BINGKAI; });
-    var totH = pek.reduce(function (s, w) { return s + (w.hadir || []).length; }, 0);
+    var totH = HOK.r3(pek.reduce(function (s, w) { return s + HOK.hokW(w); }, 0));
     sel(ws, 'D' + r, { formula: pek.length ? 'SUM(D' + r0 + ':D' + (r - 1) + ')' : '0', result: totH }, { h: 'center', bold: true, border: true, kecil: true });
-    sel(ws, 'F' + r, { formula: pek.length ? 'SUM(F' + r0 + ':F' + (r - 1) + ')' : '0', result: totH * upah }, { h: 'right', bold: true, border: true, kecil: true, fmt: RP });
+    sel(ws, 'F' + r, { formula: pek.length ? 'SUM(F' + r0 + ':F' + (r - 1) + ')' : '0', result: HOK.r3(totH * upah) }, { h: 'right', bold: true, border: true, kecil: true, fmt: RP });
     ttd(ws, r + 2, 8, F, nv, p.tgl_tt);
   }
 

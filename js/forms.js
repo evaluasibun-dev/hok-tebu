@@ -160,11 +160,11 @@ var FORM = (function () {
           '<table class="bingkai kecil"><tr><th rowspan="2" style="width:3%">NO</th><th rowspan="2" style="width:17%">NAMA LENGKAP</th><th rowspan="2" style="width:13%">NIK</th><th colspan="' + HARI + '">WAKTU PELAKSANAAN PEKERJAAN</th><th rowspan="2" style="width:5%">TOTAL HARI</th></tr><tr>' +
           tgl.map(function (d) { return '<th>' + (d ? U.namaHari(d).slice(0, 3) + '<br>' + d.slice(8) + '/' + d.slice(5, 7) : '') + '</th>'; }).join('') + '</tr>' +
           rows.map(function (w, i) {
-            var set = {}; w.hadir.forEach(function (x) { set[x] = 1; });
-            var tot = tgl.filter(function (d) { return d && set[d]; }).length;
-            return '<tr><td class="c">' + (b * BARIS + i + 1) + '</td><td>' + e(w.nama) + '</td><td>' + e(w.nik) + '</td>' + tgl.map(function (d) { return '<td class="c">' + (d && set[d] ? '√' : '') + '</td>'; }).join('') + '<td class="c tebal">' + tot + '</td></tr>';
+            var set = {}, nl = w.nilai || {}; w.hadir.forEach(function (x) { set[x] = nl[x] !== undefined ? Number(nl[x]) : 1; });
+            var tot = HOK.hokW(w, function (x) { return tgl.indexOf(x) >= 0; });
+            return '<tr><td class="c">' + (b * BARIS + i + 1) + '</td><td>' + e(w.nama) + '</td><td>' + e(w.nik) + '</td>' + tgl.map(function (d) { return '<td class="c">' + (d && set[d] ? (set[d] === 1 ? '√' : U.angka(set[d])) : '') + '</td>'; }).join('') + '<td class="c tebal">' + U.angka(tot) + '</td></tr>';
           }).join('') +
-          (b === nHal - 1 ? '<tr><td colspan="' + (3 + HARI) + '" class="c tebal">JUMLAH HOK PERIODE INI</td><td class="c tebal">' + pek.reduce(function (s, w) { return s + w.hadir.filter(function (x) { return tgl.indexOf(x) >= 0; }).length; }, 0) + '</td></tr>' : '') +
+          (b === nHal - 1 ? '<tr><td colspan="' + (3 + HARI) + '" class="c tebal">JUMLAH HOK PERIODE INI</td><td class="c tebal">' + U.angka(HOK.r3(pek.reduce(function (s, w) { return s + HOK.hokW(w, function (x) { return tgl.indexOf(x) >= 0; }); }, 0))) + '</td></tr>' : '') +
           '</table>' + ttdTimKetua(F, tgl.filter(Boolean).slice(-1)[0]) + '</div>';
       }
     }
@@ -215,7 +215,7 @@ var FORM = (function () {
   function F09(F) {
     var pek = F.pekerja, upah = F.p.hit.upah, BARIS = 25, nHal = Math.max(1, Math.ceil(pek.length / BARIS)), out = '';
     var totH = 0, totR = 0;
-    pek.forEach(function (w) { totH += w.hadir.length; totR += w.hadir.length * upah; });
+    pek.forEach(function (w) { totH = HOK.r3(totH + HOK.hokW(w)); totR = HOK.r3(totR + HOK.hokW(w) * upah); });
     for (var b = 0; b < nHal; b++) {
       var rows = pek.slice(b * BARIS, (b + 1) * BARIS);
       out += '<div class="hal">' + kopWilayah(F, 'TANDA TERIMA PEMBAYARAN') + '<div class="jarak"></div>' +
@@ -223,7 +223,7 @@ var FORM = (function () {
         '<table class="bingkai kecil"><tr><th style="width:5%">NO</th><th>NAMA LENGKAP</th><th style="width:19%">NIK</th><th style="width:9%">TOTAL HADIR (HARI)</th><th style="width:12%">UPAH KERJA PER HARI (Rp)</th><th style="width:14%">JUMLAH UPAH DITERIMA (Rp)</th><th colspan="2" style="width:20%">TANDA TANGAN</th></tr>' +
         rows.map(function (w, i) {
           var no = b * BARIS + i + 1, ttdKiri = no % 2 === 1;
-          return '<tr style="height:20pt"><td class="c">' + no + '</td><td>' + e(w.nama) + '</td><td>' + e(w.nik) + '</td><td class="c">' + w.hadir.length + '</td><td class="r">' + U.angka(upah) + '</td><td class="r">' + U.angka(w.hadir.length * upah) + '</td>' +
+          return '<tr style="height:20pt"><td class="c">' + no + '</td><td>' + e(w.nama) + '</td><td>' + e(w.nik) + '</td><td class="c">' + U.angka(HOK.hokW(w)) + '</td><td class="r">' + U.angka(upah) + '</td><td class="r">' + U.angka(HOK.r3(HOK.hokW(w) * upah)) + '</td>' +
             '<td>' + (ttdKiri ? no + '. ……………' : '') + '</td><td>' + (ttdKiri ? '' : no + '. ……………') + '</td></tr>';
         }).join('') +
         (b === nHal - 1 ? '<tr><td colspan="3" class="c tebal">JUMLAH</td><td class="c tebal">' + totH + '</td><td></td><td class="r tebal">' + U.angka(totR) + '</td><td colspan="2"></td></tr>' : '') +
