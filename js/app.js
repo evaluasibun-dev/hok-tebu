@@ -247,7 +247,7 @@
       if (k[0] === 'ktp' && q.kKtp) item.push({ label: 'KTP ' + q.kKtp + ' pekerja belum diunggah', ket: q.ktpBelum.slice(0, 12).join(', ') + (q.ktpBelum.length > 12 ? ', +' + (q.ktpBelum.length - 12) + ' lainnya' : '') });
       return { k: k, item: item };
     });
-    var kurangG = grup.filter(function (g) { return g.item.length; }), lengkapG = grup.filter(function (g) { return !g.item.length; });
+    var kurangG = grup.filter(function (g) { return g.item.length; }), lengkapG = grup.filter(function (g) { return !g.item.length && !(g.k[0] === 'ttd' && q.ttdHitung === false); });
     render('poktan', head +
       (q.n ? '<section class="ig ig-kecil ig-' + (f.k === 'beres' ? 'awal' : f.k) + '"><div class="ig-teks"><h2>Kelompok ini masih punya ' + q.n + ' kekurangan · kelengkapan ' + q.persen + '%</h2><p>' +
         e(f.k === 'lewat' ? 'Batas akhir ' + tglPanjang(IG.akhir) + ' sudah lewat ' + f.angka + ' hari. Selesaikan secepatnya.' : f.k === 'kritis' ? f.angka + ' hari menuju batas akhir input ' + tglPanjang(IG.akhir) + '.' : (selisih(S.boot.hariIni, IG.target) >= 0 ? selisih(S.boot.hariIni, IG.target) + ' hari menuju target lengkap ' + tglPanjang(IG.target) + ' · ' : '') + 'batas akhir input ' + tglPanjang(IG.akhir) + '.') + '</p></div></section>'
@@ -256,6 +256,7 @@
         return '<section class="panel" style="padding:0"><div class="panel-h" style="padding:12px 18px;margin:0;border-bottom:1px solid var(--line)"><div><h2 style="display:inline">' + e(g.k[1]) + '</h2> <span class="kecil muted">di tab ' + e(namaTab[g.k[2]]) + '</span></div><span class="pill crit">' + g.item.length + ' kurang</span></div>' +
           g.item.map(function (it) { return '<div class="ig-item"><span class="ig-ikon" aria-hidden="true">!</span><div style="flex:1;min-width:0"><b>' + e(it.label) + '</b>' + (it.ket ? '<div class="kecil muted">' + e(it.ket) + '</div>' : '') + '</div><a class="btn kecil utama" href="#/poktan/' + id + '/' + g.k[2] + '">' + (g.k[2] === 'dokumen' ? 'Unggah' : 'Isi') + '</a></div>'; }).join('') + '</section>';
       }).join('') +
+      (q.ttdHitung === false ? '<section class="panel"><div class="panel-h"><h2>Dokumen bertanda tangan</h2><span class="pill">belum dihitung</span></div><p class="kecil">Selama berkas HOK masih disusun, dokumen bertanda tangan tidak ikut dihitung. Isi <b>Tgl dokumen HOK diserahkan ke dinas</b> di <a href="#/poktan/' + id + '/data">tab Data poktan bagian D</a> setelah berkas diserahkan untuk ditandatangani; sejak itu pindaian dokumen bertanda tangan masuk perhitungan.</p></section>' : '') +
       (lengkapG.length ? '<section class="panel"><div class="panel-h"><h2>Sudah lengkap</h2></div><div class="ig-chips ok">' + lengkapG.map(function (g) { return '<span>' + e(g.k[1]) + '</span>'; }).join('') + '</div></section>' : '') +
       '<p class="kecil muted">Daftar ini diperbarui setiap kali data disimpan. Klik Muat ulang di atas bila baru saja mengunggah berkas.</p>');
   }
@@ -479,13 +480,14 @@
       ['luas', 'Luas target (ha)', 'angka', 'sesuai SK CPCL'], ['hokha_khusus', 'HOK/ha khusus (opsional)', 'angka', 'kosongkan bila mengikuti standar'],
       ['upah_khusus', 'Upah/HOK khusus (opsional)', 'angka', 'kosongkan bila mengikuti standar provinsi'], ['_tarif', 'Berlaku', 'info']]],
     ['C. Nomor dan tanggal dokumen', [
-      ['no_cpcl', 'No. SK CPCL'], ['tgl_cpcl', 'Tgl SK CPCL', 'date'], ['no_spk', 'No. SPK'], ['tgl_spk', 'Tgl SPK', 'date', 'setelah DIPA dan SK CPCL'],
+      ['no_cpcl', 'No. SK CPCL'], ['tgl_cpcl', 'Tgl SK CPCL', 'date'], ['tahap_sk', 'Tahap SK CPCL', 'tahap_sk', 'tampil di cover berkas, mis. SK TAHAP III'], ['no_spk', 'No. SPK'], ['tgl_spk', 'Tgl SPK', 'date', 'setelah DIPA dan SK CPCL'],
       ['tempat_spk', 'SPK bertempat di'], ['jalan_spk', 'Jalan tempat SPK'], ['spk_sd', 'SPK berlaku s.d.', 'date'], ['tgl_sptjm', 'Tgl SPTJM', 'date', 'sama/setelah SPK'],
       ['tgl_rukk', 'Tgl RUKK', 'date', 'sama/setelah SPK, sebelum mulai'], ['mulai', 'Tgl mulai pekerjaan (SPK)', 'date', 'setelah tanggal SPK'], ['selesai', 'Tgl selesai pekerjaan (SPK)', 'date', 'dalam masa berlaku SPK; juga akhir pengolahan lahan'],
       ['mulai_olah', 'Tgl mulai pengolahan lahan', 'date', 'awal kehadiran HOK; antara tgl mulai dan selesai pekerjaan'],
       ['tgl_lap', 'Tgl laporan pelaksanaan', 'date'], ['no_bap', 'No. BA Pemeriksaan'], ['tgl_bap', 'Tgl BA Pemeriksaan', 'date'], ['no_bast', 'No. BAST'], ['tgl_bast', 'Tgl BAST', 'date'],
       ['no_kw', 'No. Kwitansi'], ['tgl_kw', 'Tgl Kwitansi', 'date'], ['tgl_tt', 'Tgl tanda terima upah pekerja', 'date']]],
-    ['D. Realisasi', [['real_luas', 'Realisasi luas (ha)', 'angka', 'hasil pemeriksaan tim teknis']]]
+    ['D. Realisasi dan penyerahan dokumen', [['real_luas', 'Realisasi luas (ha)', 'angka', 'hasil pemeriksaan tim teknis'],
+      ['tgl_serah', 'Tgl dokumen HOK diserahkan ke dinas', 'date', 'untuk ditandatangani; sejak tanggal ini dokumen bertanda tangan ikut dihitung dalam progres']]]
   ];
 
   function ctxLokal(pekerjaDetail) {
@@ -509,6 +511,9 @@
         inp = '<select id="fld-npwp_an" name="npwp_an"' + dis + '><option value="">– pilih –</option>' + HOK.NPWP_AN.map(function (x) { return '<option' + (x === v ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>';
       } else if (tipe === 'jenis_kel') {
         inp = '<select id="fld-jenis_kel" name="jenis_kel"' + dis + '>' + HOK.DAFTAR_JENIS_KEL.map(function (x) { return '<option' + (x === HOK.jenisKel({ jenis_kel: v }).nama ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>';
+      } else if (tipe === 'tahap_sk') {
+        var auto = HOK.tahapSK({ no_cpcl: (S.detail && S.detail.poktan && S.detail.poktan.no_cpcl) || '' });
+        inp = '<select id="fld-tahap_sk" name="tahap_sk"' + dis + '><option value="">' + (auto ? 'Otomatis dari No. SK CPCL (Tahap ' + auto + ')' : '– pilih tahap –') + '</option>' + HOK.TAHAP_SK.map(function (x) { return '<option value="' + x + '"' + (x === v ? ' selected' : '') + '>Tahap ' + x + '</option>'; }).join('') + '</select>';
       } else if (tipe === 'keg') {
         inp = '<select id="fld-keg" name="keg"' + dis + '>' + Object.keys(HOK.KEG).map(function (x) { return '<option' + (x === v ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select>';
       } else {
@@ -786,7 +791,7 @@
       var fKtpKetua = cari('idn', 'ktp_ketua'), nikKetua = String(p.nik_ketua || '');
       var ktpPekerja = function (w) { return b.filter(function (f) { return f.grup === 'ktp' && f.nama.indexOf(w.nik + '_') === 0; })[0] || (fKtpKetua && w.nik === nikKetua ? fKtpKetua : null); };
       var nIdn = hitung('idn', 2), nRek = hitung('rek', 3), nGeo = hitung('geo', 6), nTtd = hitung('ttd', 10), nKtp = d.pekerja.filter(function (w) { return !!ktpPekerja(w); }).length;
-      var total = 2 + 3 + 6 + 10 + d.pekerja.length, ada = nIdn + nRek + nGeo + nTtd + nKtp;
+      var ttdH = HOK.ttdDihitung(p), total = 2 + 3 + 6 + (ttdH ? 10 : 0) + d.pekerja.length, ada = nIdn + nRek + nGeo + (ttdH ? nTtd : 0) + nKtp;
       var kartu = function (g, s, label) {
         var f = cari(g, s), m = f && f.meta, ket = '', salah = false;
         if (f) {
@@ -804,7 +809,7 @@
       };
       $('#dok-isi').innerHTML =
         '<section class="panel"><div class="panel-h"><h2>Kelengkapan dokumen</h2><span class="kecil muted">Disimpan di Google Drive: HOK_Tebu_2026 / ' + e(((S.boot && S.boot.kabBy) || {})[p.kab] ? S.boot.kabBy[p.kab].provinsi : '') + ' / ' + e(p.kab) + ' / ' + e(HOK.namaFolder(p)) + '</span></div>' +
-        '<div style="display:flex;gap:14px;align-items:center"><span style="font-family:var(--f-disp);font-size:40px;font-weight:600">' + Math.round(ada / total * 100) + '%</span><div style="flex:1"><div class="bar" style="height:8px"><i style="width:' + (ada / total * 100) + '%"></i></div><div class="kecil muted" style="margin-top:6px">' + ada + ' dari ' + total + ' berkas · KTP ketua & NPWP ' + nIdn + '/2 · rekening ' + nRek + '/3 · foto geotag ' + nGeo + '/6 · KTP ' + nKtp + '/' + d.pekerja.length + ' · dokumen bertanda tangan ' + nTtd + '/10</div></div></div>' +
+        '<div style="display:flex;gap:14px;align-items:center"><span style="font-family:var(--f-disp);font-size:40px;font-weight:600">' + Math.round(ada / total * 100) + '%</span><div style="flex:1"><div class="bar" style="height:8px"><i style="width:' + (ada / total * 100) + '%"></i></div><div class="kecil muted" style="margin-top:6px">' + ada + ' dari ' + total + ' berkas · KTP ketua & NPWP ' + nIdn + '/2 · rekening ' + nRek + '/3 · foto geotag ' + nGeo + '/6 · KTP ' + nKtp + '/' + d.pekerja.length + ' · dokumen bertanda tangan ' + nTtd + '/10' + (ttdH ? '' : ' (belum dihitung)') + '</div></div></div>' +
         (tulis ? '<p class="kecil muted" style="margin-top:8px">Foto dikecilkan otomatis sebelum diunggah (±400 KB). Tanggal dan koordinat foto dibaca dari kamera bila tersedia. Nama berkas dibuat otomatis sesuai aturan.</p>' : '') + '</section>' +
         '<section class="panel"><div class="panel-h"><h2>Foto geotag (0%, 50%, 100%)</h2><span class="kecil muted">lahan yang sama, koordinat dan waktu terlihat</span></div><div class="slot-grid">' + slot.geo.map(function (s) { return kartu('geo', s[0], s[1]); }).join('') + '</div></section>' +
         '<section class="panel"><div class="panel-h"><h2>KTP ketua & NPWP</h2><span class="kecil muted">berwarna, tidak terpotong, tidak buram, jelas terbaca</span></div><div class="slot-grid">' +
@@ -821,7 +826,7 @@
             (f && tulis ? '<button class="btn kecil bahaya" data-hapus-f="' + f.id + '">Hapus</button>' : '') + '</div></div>';
         }).join('') + '</div>' : '<div class="kosong">Belum ada pekerja di daftar hadir.</div>') +
         (ktpLain.length ? '<div class="galat" style="margin-top:10px">' + ktpLain.length + ' berkas KTP tidak cocok dengan NIK di daftar hadir: ' + ktpLain.map(function (f) { return e(f.nama); }).join(', ') + '</div>' : '') + '</section>' +
-        '<section class="panel"><div class="panel-h"><h2>Dokumen bertanda tangan (pindaian)</h2><span class="kecil muted">PDF atau foto setelah ditandatangani dan bermaterai</span></div><div class="slot-grid">' + slot.ttd.map(function (s) { return kartu('ttd', s[0], s[1]); }).join('') + '</div></section>';
+        '<section class="panel"><div class="panel-h"><h2>Dokumen bertanda tangan (pindaian)</h2><span class="kecil muted">PDF atau foto setelah ditandatangani dan bermaterai</span></div>' + (HOK.ttdDihitung(p) ? '' : '<p class="kecil" style="margin:0 0 10px;padding:8px 12px;border-radius:8px;background:var(--sunk)">Belum dihitung dalam progres. Dokumen bertanda tangan mulai dihitung setelah <b>Tgl dokumen HOK diserahkan ke dinas</b> diisi di tab Data poktan bagian D.</p>') + '<div class="slot-grid">' + slot.ttd.map(function (s) { return kartu('ttd', s[0], s[1]); }).join('') + '</div></section>';
       $$('#dok-isi [data-lihat]').forEach(function (bt) { bt.onclick = function () { lihatBerkas(bt.dataset.lihat); }; });
       $$('#dok-isi [data-hapus-f]').forEach(function (bt) {
         bt.onclick = function () {
@@ -941,7 +946,7 @@
       $$('[data-word]').forEach(function (bt) { bt.onclick = function () { proses(bt, function () { var F = dataForm(); return (['F10', 'F12', 'F14'].indexOf(bt.dataset.word) >= 0 ? ambilFoto(F, bt.dataset.word) : Promise.resolve(F)).then(function (F) { return EKSPOR.word(bt.dataset.word, F); }); }); }; });
       $$('[data-excel]').forEach(function (bt) { bt.onclick = function () { proses(bt, function () { return EKSPOR.excel([bt.dataset.excel], dataForm()); }); }; });
       $('#word-semua').onclick = function () { var bt = this; proses(bt, function () { return ambilFoto(dataForm()).then(EKSPOR.wordSemua); }); };
-      $('#excel-semua').onclick = function () { var bt = this; proses(bt, function () { return EKSPOR.excel(['F00', 'F03', 'F05', 'F06', 'F07', 'F09'], dataForm()); }); };
+      $('#excel-semua').onclick = function () { var bt = this; proses(bt, function () { return EKSPOR.excel(['F00', 'F03', 'F05', 'F06', 'F07', 'F09', 'F13'], dataForm()); }); };
     });
   }
 

@@ -33,6 +33,10 @@ var EKSPOR = (function () {
     var p = F.p, h = p.hit || {}, k = F.keg, kab = F.kab || {}, st = F.setting || {};
     var luasR = U.n(p.real_luas) ? U.ha(p.real_luas) : '……';
     return {
+      spk2: k.spk2, dok3: k.dok3, tahap: t(HOK.tahapSK(p)), prov_panjang: t(String(kab.provinsi || '').replace(/^D\.?\s?I\.?\s+/i, 'Daerah Istimewa ')),
+      cv1: k.dok3.indexOf(' DAN ') > 0 ? k.dok3.slice(0, k.dok3.indexOf(' DAN ') + 4) : k.dok3, cv2: k.dok3.indexOf(' DAN ') > 0 ? k.dok3.slice(k.dok3.indexOf(' DAN ') + 5) : '',
+      cv_luas: (U.n(p.real_luas) && h.rHOK > 0) ? U.ha(p.real_luas) : (U.n(p.luas) ? U.ha(p.luas) : '……'), cv_rp: U.rp(h.rHOK > 0 ? h.rBiaya : h.tBiaya), cv_hok: U.angka(h.rHOK > 0 ? h.rHOK : h.tHOK),
+      cv_terbilang: (U.terbilang(h.rHOK > 0 ? h.rBiaya : h.tBiaya) + ' rupiah').replace(/(^|\s)([a-z])/g, function (m, a, b) { return a + b.toUpperCase(); }),
       judul: k.judul, poktan_besar: t(String(p.poktan || '').toUpperCase()), keg_besar: String(k.nama).toUpperCase(), npwp: t(p.npwp), npwp_an: t(HOK.npwpAn(p)), spk3: k.spk3, sptjm: k.sptjm, frasa: k.frasa, biaya: k.biaya, jenis: k.jenis,
       tahun: t(st.tahun, '2026'), no_dipa: t(st.no_dipa), tgl_dipa: U.tgl(st.tgl_dipa), kpa: t(st.kpa),
       no_spk: t(p.no_spk), kalimat_spk: U.kalimatHari(p.tgl_spk), tempat_spk: t(p.tempat_spk), jalan_spk: t(p.jalan_spk),
@@ -54,8 +58,11 @@ var EKSPOR = (function () {
   }
 
   // ------------------------------------------------------------ WORD (template resmi)
+  // nomor urut berkas SPJ HOK (dipakai pada nama file unduhan)
+  var NOMOR = { C00: '0', F01: '1', F02: '2', F03: '3', F05: '4', F06: '5', F07: '6', F08: '7', F09: '8', F11: '9', F10: '10', F12: '11', F14: '12', F13: '13' };
+  function namaNomor(kode, label) { return (NOMOR[kode] !== undefined ? NOMOR[kode] + '._' : '') + label; }
   var WORD = {
-    F01: ['F01_SPK.docx', 'SPK'], F02: ['F02_SPTJM.docx', 'SPTJM'], F08: ['F08_BAST.docx', 'BAST'],
+    C00: ['F00_Cover.docx', 'Cover'], F01: ['F01_SPK.docx', 'SPK'], F02: ['F02_SPTJM.docx', 'SPTJM'], F08: ['F08_BAST.docx', 'BAST'],
     F10: ['F10_Dokumentasi.docx', 'Dokumentasi'], F11: ['F11_Kwitansi.docx', 'Kwitansi'], F12: ['F12_KTP_Rekening_NPWP.docx', 'KTP_Rekening_NPWP'], F14: ['F14_KTP_Pekerja.docx', 'KTP_Pekerja']
   };
   function xmlEsc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -75,6 +82,20 @@ var EKSPOR = (function () {
   }
   function parKecil(teks) {
     return '<w:p><w:pPr><w:spacing w:before="40" w:after="0"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:t xml:space="preserve">' + xmlEsc(teks) + '</w:t></w:r></w:p>';
+  }
+  // F10: foto geotag satu tahap bertumpuk dan diperbesar (satu tahap satu halaman) agar keterangan geotag terbaca
+  function tabelFotoBesar(sel) {
+    if (!sel.length) sel = [null];
+    var kolom = 9000, maxW = (kolom - 200) * EMU, maxH = (sel.length > 1 ? 6300 : 11000) * EMU;
+    var b = '<w:top w:val="single" w:sz="6" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="6" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="6" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="6" w:space="0" w:color="000000"/><w:insideH w:val="single" w:sz="6" w:space="0" w:color="000000"/><w:insideV w:val="single" w:sz="6" w:space="0" w:color="000000"/>';
+    return '<w:tbl><w:tblPr><w:tblW w:w="' + kolom + '" w:type="dxa"/><w:jc w:val="center"/><w:tblBorders>' + b + '</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="60" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid><w:gridCol w:w="' + kolom + '"/></w:tblGrid>' +
+      sel.map(function (c) {
+        var isi;
+        if (c && c.teks) isi = '<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:color w:val="666666"/></w:rPr><w:t xml:space="preserve">' + xmlEsc(c.teks) + '</w:t></w:r></w:p>';
+        else if (c) { var k = Math.min(maxW / c.w, maxH / c.h), w = Math.round(c.w * k), h = Math.round(c.h * k); isi = '<w:p><w:pPr><w:spacing w:before="0" w:after="0"/><w:jc w:val="center"/></w:pPr>' + gambarInline(c.rid, c.id, w, h) + '</w:p>' + (c.ket ? parKecil(c.ket) : ''); }
+        else isi = '<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:color w:val="666666"/></w:rPr><w:t>Foto geotag belum diunggah</w:t></w:r></w:p>';
+        return '<w:tr><w:trPr><w:cantSplit/></w:trPr><w:tc><w:tcPr><w:tcW w:w="' + kolom + '" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>' + isi + '</w:tc></w:tr>';
+      }).join('') + '</w:tbl><w:p><w:pPr><w:spacing w:before="0" w:after="120"/></w:pPr></w:p>';
   }
   // tabel 2 kolom berisi foto geotag satu tahap
   function tabelFoto(sel) {
@@ -137,6 +158,7 @@ var EKSPOR = (function () {
         // sebutan lembaga di teks templat mengikuti jenis kelompok
         xml = xml.replace(/Kelompok Tani \{\{poktan\}\}/g, '{{lembaga}}').replace(/KELOMPOK TANI \{\{poktan_besar\}\}/g, '{{lembaga_besar}}');
         if (nv.jk_label !== 'Kelompok Tani') xml = xml.replace(/KELOMPOK TANI/g, nv.jk_besar).replace(/Kelompok Tani/g, nv.jk_label);
+        if (!nv.cv2) xml = xml.replace('<w:br/><w:t>{{cv2}}</w:t>', '<w:t></w:t>'); // cover: judul kegiatan satu baris bila tidak ada 'DAN'
         xml = xml.replace(/\{\{([a-z0-9_]+)\}\}/g, function (m, k) { return xmlEsc(nv[k] === undefined ? TITIK : nv[k]); });
         if (kode !== 'F10' && kode !== 'F12' && kode !== 'F14') return { zip: zip, xml: xml };
         if (kode === 'F14') {
@@ -177,7 +199,7 @@ var EKSPOR = (function () {
             tambahRel += '<Relationship Id="' + rid + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="' + berkas + '"/>';
             var m = f.meta || {}, ket = kode === 'F10' ? [m.tanggal ? m.tanggal.replace('T', ' ') : '', m.lat ? m.lat + ', ' + m.lng : ''].filter(Boolean).join(' · ') : '';
             return ukuranGambar(f.url).then(function (u) { return { rid: rid, id: id, w: u.w, h: u.h, ket: ket }; });
-          })).then(function (sel) { xml = gantiParagraf(xml, '{{FOTO:' + nama + '}}', tabelFoto(sel)); }));
+          })).then(function (sel) { xml = gantiParagraf(xml, '{{FOTO:' + nama + '}}', kode === 'F10' ? tabelFotoBesar(sel.filter(Boolean)) : tabelFoto(sel)); }));
         });
         return Promise.all(jobs).then(function () {
           var tugas = [];
@@ -196,12 +218,12 @@ var EKSPOR = (function () {
   }
 
   function word(kode, F) {
-    return muat('JSZip').then(function (JSZip) { return isiWord(kode, F, JSZip); }).then(function (blob) { unduh(blob, namaBerkas(F, WORD[kode][1], 'docx')); });
+    return muat('JSZip').then(function (JSZip) { return isiWord(kode, F, JSZip); }).then(function (blob) { unduh(blob, namaBerkas(F, namaNomor(kode, WORD[kode][1]), 'docx')); });
   }
   function wordSemua(F) {
     return muat('JSZip').then(function (JSZip) {
       var zip = new JSZip(), kodes = Object.keys(WORD);
-      return Promise.all(kodes.map(function (k) { return isiWord(k, F, JSZip).then(function (b) { zip.file(namaBerkas(F, k + '_' + WORD[k][1], 'docx'), b); }); }))
+      return Promise.all(kodes.map(function (k) { return isiWord(k, F, JSZip).then(function (b) { zip.file(namaBerkas(F, namaNomor(k, WORD[k][1]), 'docx'), b); }); }))
         .then(function () { return zip.generateAsync({ type: 'blob' }); });
     }).then(function (blob) { unduh(blob, namaBerkas(F, 'Word_HOK', 'zip')); });
   }
@@ -277,13 +299,13 @@ var EKSPOR = (function () {
   }
 
   function xF03(wb, F, nv) {
-    var ws = lembar(wb, 'RUKK', [6, 30, 16, 16, 16, 20], true), p = F.p, h = p.hit || {};
+    var ws = lembar(wb, 'RUKK', [6, 42.6, 16, 16, 16, 20], true), p = F.p, h = p.hit || {};
     var r = judulLembar(ws, ['RENCANA USULAN KERJA KELOMPOK', F.keg.bantuan.toUpperCase(), nv.judul, wilayah(F, nv), 'TAHUN ANGGARAN ' + nv.tahun], 6);
     r = identitas(ws, r, [[nv.jk_besar, nv.poktan], ['DESA', nv.desa], ['KECAMATAN', nv.kec], ['LUAS AREA', nv.luas + ' ha']]) + 1;
     var a = r;
     gabung(ws, a, 1, a + 1, 1); gabung(ws, a, 2, a + 1, 2); gabung(ws, a, 3, a, 5); gabung(ws, a, 6, a + 1, 6);
     sel(ws, 'A' + a, 'NO', { h: 'center', bold: true, border: true }); sel(ws, 'B' + a, 'KEGIATAN', { h: 'center', bold: true, border: true });
-    sel(ws, 'C' + a, F.keg.bantuan, { h: 'center', bold: true, border: true }); sel(ws, 'F' + a, 'JUMLAH (Rp)', { h: 'center', bold: true, border: true });
+    sel(ws, 'C' + a, F.keg.bantuan, { h: 'center', bold: true, border: true, wrap: true }); ws.getRow(a).height = 33; sel(ws, 'F' + a, 'JUMLAH (Rp)', { h: 'center', bold: true, border: true });
     ['Luas Lahan (ha)', 'Jumlah HOK/ha', 'Satuan (Rp)'].forEach(function (x, i) { sel(ws, kol(3 + i) + (a + 1), x, { h: 'center', bold: true, border: true, wrap: true }); });
     ['A', 'B', 'D', 'E', 'F'].forEach(function (c) { ws.getCell(c + (a + 1)).border = BINGKAI; });
     ['D', 'E'].forEach(function (c) { ws.getCell(c + a).border = BINGKAI; });
@@ -411,8 +433,8 @@ var EKSPOR = (function () {
     ttd(ws, r + 2, 8, F, nv, p.tgl_tt);
   }
 
-  var EXCEL = { F00: xF00, F03: xF03, F05: xF05, F06: function (wb, F, nv) { xRealisasi(wb, F, nv, false); }, F07: function (wb, F, nv) { xRealisasi(wb, F, nv, true); }, F09: xF09 };
-  var NAMA_X = { F00: 'Daftar_Periksa', F03: 'RUKK', F05: 'Daftar_Hadir', F06: 'Laporan_Pelaksanaan', F07: 'BA_Pemeriksaan', F09: 'Tanda_Terima' };
+  var EXCEL = { F00: xF00, F03: xF03, F05: xF05, F06: function (wb, F, nv) { xRealisasi(wb, F, nv, false); }, F07: function (wb, F, nv) { xRealisasi(wb, F, nv, true); }, F09: xF09, F13: function (wb, F) { lembarAlamat(wb, F.kab, null, [F.p]); } };
+  var NAMA_X = { F00: 'Daftar_Periksa', F03: 'RUKK', F05: 'Daftar_Hadir', F06: 'Laporan_Pelaksanaan', F07: 'BA_Pemeriksaan', F09: 'Tanda_Terima', F13: 'Data_Poktan' };
 
   function excel(kodes, F) {
     return muat('ExcelJS').then(function (ExcelJS) {
@@ -421,27 +443,31 @@ var EKSPOR = (function () {
       kodes.forEach(function (k) { EXCEL[k](wb, F, nv); });
       return wb.xlsx.writeBuffer();
     }).then(function (buf) {
-      unduh(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), namaBerkas(F, kodes.length > 1 ? 'Form_Excel_HOK' : NAMA_X[kodes[0]], 'xlsx'));
+      unduh(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), namaBerkas(F, kodes.length > 1 ? 'Form_Excel_HOK' : namaNomor(kodes[0], NAMA_X[kodes[0]]), 'xlsx'));
     });
   }
 
   // F13 alamat poktan per kabupaten
-  function excelAlamat(kab, keg, daftar) {
-    return muat('ExcelJS').then(function (ExcelJS) {
+  function lembarAlamat(wb, kab, keg, daftar) {
       var J = FORM.sebutanDaftar(daftar);
-      var wb = new ExcelJS.Workbook(), ws = lembar(wb, 'List Data Kelompok', [5, 28, 22, 20, 22, 16, 16, 14, 16, 20, 26, 26], true);
-      var r = judulLembar(ws, ['LIST DATA ' + J.besar + ' PENERIMA BANTUAN'].concat(keg ? [HOK.KEG[keg].judul] : []).concat(['KABUPATEN ' + kab.kab.toUpperCase() + ' PROVINSI ' + String(kab.provinsi || '').toUpperCase()]), 12);
-      ['NO', 'NAMA ' + J.besar, 'KETUA ' + J.besar, 'NIK', 'JALAN', 'DESA', 'KECAMATAN', 'KABUPATEN', 'PROVINSI', 'NO REKENING', 'NAMA REKENING', 'NOMOR NPWP (' + J.npwp + ')']
+      var ws = lembar(wb, 'List Data Kelompok', [5, 28, 22, 20, 22, 16, 16, 14, 16, 12, 20, 26, 26], true);
+      var r = judulLembar(ws, ['DATA ' + J.besar + ' PENERIMA BANTUAN'].concat(keg ? [HOK.KEG[keg].judul] : []).concat(['KABUPATEN ' + String(kab.kab || daftar[0].kab).toUpperCase() + ' PROVINSI ' + String(kab.provinsi || '').toUpperCase()]), 13);
+      ['NO', 'NAMA ' + J.besar, 'KETUA ' + J.besar, 'NIK', 'JALAN', 'DESA', 'KECAMATAN', 'KABUPATEN', 'PROVINSI', 'BANK', 'NO REKENING', 'NAMA REKENING', 'NOMOR NPWP (' + J.npwp + ')']
         .forEach(function (x, i) { sel(ws, kol(i + 1) + r, x, { h: 'center', bold: true, border: true, wrap: true, kecil: true, fill: true }); });
       ws.getRow(r).height = 32;
       daftar.forEach(function (p, i) {
         r++;
-        [i + 1, J.campur ? FORM.lembaga(p.poktan, p.jenis_kel) : p.poktan, p.ketua, String(p.nik_ketua || ''), p.jalan, p.desa, p.kec, p.kab, kab.provinsi, String(p.norek || ''), p.namarek, String(p.npwp || '') + (p.npwp && p.npwp_an ? ' (' + HOK.npwpAn(p) + ')' : '')]
-          .forEach(function (v, j) { sel(ws, kol(j + 1) + r, v === undefined ? '' : v, { border: true, kecil: true, wrap: true, h: j === 0 ? 'center' : 'left', fmt: [3, 9, 11].indexOf(j) >= 0 ? '@' : undefined }); });
+        [i + 1, J.campur ? FORM.lembaga(p.poktan, p.jenis_kel) : p.poktan, p.ketua, String(p.nik_ketua || ''), p.jalan, p.desa, p.kec, p.kab, kab.provinsi, p.bank, String(p.norek || ''), p.namarek, String(p.npwp || '') + (p.npwp && p.npwp_an ? ' (' + HOK.npwpAn(p) + ')' : '')]
+          .forEach(function (v, j) { sel(ws, kol(j + 1) + r, v === undefined ? '' : v, { border: true, kecil: true, wrap: true, h: j === 0 ? 'center' : 'left', fmt: [3, 10, 12].indexOf(j) >= 0 ? '@' : undefined }); });
       });
+      return ws;
+  }
+  function excelAlamat(kab, keg, daftar) {
+    return muat('ExcelJS').then(function (ExcelJS) {
+      var wb = new ExcelJS.Workbook(); lembarAlamat(wb, kab, keg, daftar);
       return wb.xlsx.writeBuffer();
-    }).then(function (buf) { unduh(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'F13_List_Data_Poktan_' + kab.kab.replace(/\s+/g, '-') + (keg ? '_' + HOK.kodeKeg(keg) : '') + '.xlsx'); });
+    }).then(function (buf) { unduh(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), '13._Data_Poktan_' + kab.kab.replace(/\s+/g, '-') + (keg ? '_' + HOK.kodeKeg(keg) : '') + '.xlsx'); });
   }
 
-  return { WORD: WORD, EXCEL: EXCEL, word: word, wordSemua: wordSemua, excel: excel, excelAlamat: excelAlamat, nilai: nilai };
+  return { NOMOR: NOMOR, WORD: WORD, EXCEL: EXCEL, word: word, wordSemua: wordSemua, excel: excel, excelAlamat: excelAlamat, nilai: nilai };
 })();

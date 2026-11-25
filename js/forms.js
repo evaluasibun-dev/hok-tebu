@@ -95,7 +95,7 @@ var FORM = (function () {
       ['Larangan Korupsi, Kolusi, dan Nepotisme (KKN)', '<p>Para pihak dilarang untuk:</p><ol class="pasal"><li>menawarkan, menerima atau menjanjikan untuk memberi atau menerima hadiah atau imbalan berupa apa saja atau melakukan tindakan lainnya untuk mempengaruhi siapapun yang diketahui atau patut dapat diduga berkaitan dengan pengadaan ini;</li><li>membuat dan/atau menyampaikan secara tidak benar dokumen dan/atau keterangan lain yang disyaratkan untuk penyusunan dan pelaksanaan surat perjanjian kerjasama ini.</li></ol>'],
       ['Perselisihan', '<ol class="pasal"><li>Apabila terjadi perselisihan antara Pihak Kesatu dan Pihak Kedua, penyelesaian dilakukan secara musyawarah dan mufakat;</li><li>Apabila penyelesaian secara musyawarah dan mufakat tidak tercapai, maka Pihak Kesatu dan Pihak Kedua sepakat untuk menyelesaikannya secara hukum di Pengadilan Negeri setempat.</li></ol>']
     ];
-    return '<div class="hal">' + judulBlok(['SURAT PERJANJIAN KERJASAMA (SPK)', e(k.judul), 'NOMOR : ' + isi(p.no_spk)]) + '<div class="jarak"></div>' +
+    return '<div class="hal"><img class="kop" src="assets/kop.jpg" alt="">' + judulBlok(['SURAT PERJANJIAN KERJASAMA (SPK)', e(k.judul), 'NOMOR : ' + isi(p.no_spk)]) + '<div class="jarak"></div>' +
       judulBlok(['TENTANG PEMANFAATAN BANTUAN', e(k.spk2), e(k.spk3), 'TAHUN ANGGARAN ' + e(F.setting.tahun)]) + '<div class="jarak"></div>' +
       '<p class="rata">' + U.kalimatHari(p.tgl_spk) + ' bertempat di ' + isi(p.tempat_spk) + ' Jalan ' + isi(p.jalan_spk) + ', yang bertanda tangan di bawah ini :</p>' +
       kv([['I. Nama', '<b>' + isi(F.kab.ppk) + '</b>'], ['&nbsp;&nbsp;&nbsp;NIP', isi(F.kab.nip_ppk)], ['&nbsp;&nbsp;&nbsp;Jabatan', '<span class="rata">' + jabatanPPK(F) + '</span>']]) +
@@ -119,7 +119,7 @@ var FORM = (function () {
       '<li>apabila bantuan dimaksud tidak digunakan sesuai peruntukannya sehingga mengakibatkan kerugian Negara, maka saya bersedia mengganti sesuai dengan ketentuan peraturan yang berlaku;</li>' +
       '<li>menyimpan seluruh bukti terkait penggunaan bantuan dimaksud sebagai kelengkapan administrasi untuk keperluan pemeriksaan.</li></ol>' +
       '<p class="rata">Surat pernyataan ini kami buat dengan sesungguhnya untuk dapat dipergunakan sebagaimana mestinya.</p><div class="jarak"></div>' +
-      '<table class="ttd"><tr><td></td><td>' + tempatTgl(F, p.tgl_sptjm) + '<br>Ketua ' + e(lembaga(p.poktan, p.jenis_kel)) + '<div class="ruang-ttd">Tanda tangan / stempel<br>Materai Rp10.000</div><span class="tebal garis-bawah">' + isi(p.ketua) + '</span></td></tr></table></div>';
+      '<table class="ttd"><tr><td></td><td>' + tempatTgl(F, p.tgl_sptjm) + '<br>Ketua ' + e(lembaga(p.poktan, p.jenis_kel)) + '<div class="ruang-ttd">Tanda tangan / stempel<br>Materai Rp10.000</div><span class="tebal garis-bawah">' + isi(p.ketua) + '</span><br>NIK. ' + nikTampil(p.nik_ketua) + '</td></tr></table></div>';
   }
 
   // ---------------------------------------------------------------- F03 RUKK
@@ -205,8 +205,8 @@ var FORM = (function () {
       kv([['II. Nama', '<b>' + isi(F.kab.ppk) + '</b>'], ['&nbsp;&nbsp;&nbsp;&nbsp;NIP', isi(F.kab.nip_ppk)], ['&nbsp;&nbsp;&nbsp;&nbsp;Jabatan', 'Pejabat Pembuat Komitmen ' + isi(F.kab.unit)]]) +
       '<p>Yang selanjutnya disebut <b>PIHAK KEDUA</b> (pihak yang menerima)</p>' +
       '<p class="rata">Sesuai dengan Berita Acara Pemeriksaan nomor ' + isi(p.no_bap) + ' Tanggal ' + U.tgl(p.tgl_bap) + ', PIHAK KESATU menyerahkan kepada PIHAK KEDUA hasil pekerjaan sebagai berikut :</p>' +
-      '<ol class="pasal"><li>PIHAK KESATU telah menyerahkan hasil pelaksanaan kegiatan ' + e(F.keg.jenis) + ' di ' + e(lembagaKalimat(p.poktan, p.jenis_kel)) + ' yang telah selesai dilaksanakan 100 %. Total volume pekerjaan sebanyak ' + U.angka(h.rHOK) + ' HOK dengan nominal biaya ' + U.rp(h.rBiaya) + ' (' + U.terbilang(h.rBiaya) + ' rupiah) yang mencakup luas area tanam ' + luasR + ' ha;</li>' +
-      '<li>PIHAK KEDUA telah menerima sepenuhnya penyerahan dari PIHAK KESATU hasil pelaksanaan kegiatan ' + e(F.keg.jenis.toLowerCase()) + ' di ' + e(lembagaKalimat(p.poktan, p.jenis_kel)) + ' Desa ' + isi(p.desa) + ' Kecamatan ' + isi(p.kec) + ' Kabupaten ' + isi(p.kab) + ' seluas ' + luasR + ' ha.</li></ol>' +
+      '<ol class="pasal"><li>PIHAK KESATU telah menyerahkan hasil pelaksanaan kegiatan ' + e(F.keg.jenis) + ' di ' + e(lembagaKalimat(p.poktan, p.jenis_kel)) + ' yang telah selesai dilaksanakan 100 %. Total volume pekerjaan sebanyak ' + U.angka(h.rHOK) + ' HOK dengan nominal biaya ' + U.rp(h.rBiaya) + ' (' + U.terbilang(h.rBiaya) + ' rupiah) yang mencakup luas area ' + luasR + ' ha;</li>' +
+      '<li>PIHAK KEDUA telah menerima sepenuhnya penyerahan dari PIHAK KESATU hasil pelaksanaan kegiatan ' + e(F.keg.jenis) + ' di ' + e(lembagaKalimat(p.poktan, p.jenis_kel)) + ' Desa ' + isi(p.desa) + ' Kecamatan ' + isi(p.kec) + ' Kabupaten ' + isi(p.kab) + ' seluas ' + luasR + ' ha.</li></ol>' +
       '<p class="rata">Demikian Berita Acara Serah Terima bantuan ini dibuat, untuk dapat dipergunakan sebagaimana mestinya.</p>' +
       ttd('PIHAK KEDUA', 'Pejabat Pembuat Komitmen', isi(F.kab.ppk), 'NIP. ' + isi(F.kab.nip_ppk), 'PIHAK KESATU', 'Ketua ' + e(lembaga(p.poktan, p.jenis_kel)), isi(p.ketua), '', '', 'TTD dan stempel') + '</div>';
   }
@@ -244,7 +244,7 @@ var FORM = (function () {
     }
     return '<div class="hal">' + judulBlok(['DOKUMENTASI', 'LAPORAN ' + e(F.keg.judul), e(F.keg.dok3)]) + '<div class="jarak"></div>' +
       kv([['' + JK(F).label + '', isi(p.poktan)], ['Lokasi lahan', 'Desa ' + isi(p.desa) + ' Kecamatan ' + isi(p.kec)], ['Luas Area', luasTeks(p.luas)], ['Tanggal Pelaksanaan', tglPelaksanaan(p)]]) +
-      tahap.map(function (t, i) { return '<p class="tebal kecil" style="margin-top:6pt">' + (i + 1) + '. ' + t[1] + '</p><div class="foto-grid">' + kotak(t[0] + '_1') + kotak(t[0] + '_2') + '</div>'; }).join('') + '</div>';
+      tahap.map(function (t, i) { return (i ? '</div><div class="hal">' : '') + '<p class="tebal kecil" style="margin-top:6pt">' + (i + 1) + '. ' + t[1] + '</p><div class="foto-tumpuk">' + kotak(t[0] + '_1') + kotak(t[0] + '_2') + '</div>'; }).join('') + '</div>';
   }
 
   // ---------------------------------------------------------------- F11 Kwitansi
@@ -306,29 +306,45 @@ var FORM = (function () {
     var k = Object.keys(js), j = k.length === 1 ? HOK.JENIS_KEL[k[0]] : null;
     return j ? { besar: j.besar, npwp: j.nama === 'Kelompok Tani' ? 'KT/KETUA KT' : j.singkat.toUpperCase() + '/KETUA', campur: false } : { besar: 'KELOMPOK', npwp: 'KELOMPOK/KETUA', campur: true };
   }
+  // ---------------------------------------------------------------- C00 Cover berkas SPJ HOK
+  function C00(F) {
+    var p = F.p, h = p.hit || {}, k = F.keg, real = h.rHOK > 0;
+    var luas = real && U.n(p.real_luas) ? U.ha(p.real_luas) : (U.n(p.luas) ? U.ha(p.luas) : '……'), rp = real ? h.rBiaya : h.tBiaya, hok = real ? h.rHOK : h.tHOK;
+    var tahap = HOK.tahapSK(p), prov = String(F.kab.provinsi || '').replace(/^D\.?\s?I\.?\s+/i, 'Daerah Istimewa ');
+    var terb = (U.terbilang(rp) + ' rupiah').replace(/(^|\s)([a-z])/g, function (m, a, b) { return a + b.toUpperCase(); });
+    return '<div class="hal sampul"><img class="sampul-foto" src="assets/sampul_tebu.jpg" alt="">' +
+      '<div class="sampul-judul"><div><div class="sampul-h1">BERKAS SPJ HOK<br>' + e(k.dok3) + '</div><div class="sampul-h2">' + e(k.spk3) + (tahap ? '<br>(SK TAHAP ' + e(tahap) + ')' : '') + '</div></div>' + (tahap ? '<div class="sampul-tahap">SK<br>TAHAP ' + e(tahap) + '</div>' : '') + '</div>' +
+      '<div class="sampul-isi"><div><b>' + e(lembaga(p.poktan, p.jenis_kel)) + '</b><br>(Seluas ' + luas + ' ha ' + U.rp(rp) + ' / ' + U.angka(hok) + ' HOK)<br><i>Terbilang: ' + e(terb) + '</i><br><b>Desa ' + isi(p.desa) + '</b></div>' +
+      '<div><b>Kecamatan ' + isi(p.kec) + '<br>Kabupaten ' + isi(p.kab) + '<br>' + e(prov) + '</b></div></div>' +
+      '<p class="sampul-tahun">Tahun Anggaran ' + e(F.setting.tahun) + '</p></div>';
+  }
   // ---------------------------------------------------------------- F13 List data kelompok tani penerima bantuan (satu rekap per kabupaten)
   function F13(kab, keg, daftar) {
     var J = sebutanDaftar(daftar);
-    return '<div class="hal lanskap"><h1>LIST DATA ' + J.besar + ' PENERIMA BANTUAN</h1><h2>' + (keg ? e(HOK.KEG[keg].judul) + ' · ' : '') + 'KABUPATEN ' + e(kab.kab.toUpperCase()) + ' · PROVINSI ' + e(String(kab.provinsi).toUpperCase()) + '</h2><div class="jarak"></div>' +
-      '<table class="bingkai kecil"><tr><th>NO</th><th>NAMA ' + J.besar + '</th><th>KETUA ' + J.besar + '</th><th>NIK</th><th>JALAN</th><th>DESA</th><th>KECAMATAN</th><th>KABUPATEN</th><th>PROVINSI</th><th>NO REKENING</th><th>NAMA REKENING</th><th>NOMOR NPWP (' + J.npwp + ')</th></tr>' +
-      daftar.map(function (p, i) { return '<tr><td class="c">' + (i + 1) + '</td><td>' + e(J.campur ? lembaga(p.poktan, p.jenis_kel) : p.poktan) + '</td><td>' + e(p.ketua) + '</td><td>' + e(p.nik_ketua) + '</td><td>' + e(p.jalan) + '</td><td>' + e(p.desa) + '</td><td>' + e(p.kec) + '</td><td>' + e(p.kab) + '</td><td>' + e(kab.provinsi) + '</td><td>' + e(p.norek) + '</td><td>' + e(p.namarek) + '</td><td>' + npwpTeks(p) + '</td></tr>'; }).join('') +
+    return '<div class="hal lanskap"><h1>DATA ' + J.besar + ' PENERIMA BANTUAN</h1><h2>' + (keg ? e(HOK.KEG[keg].judul) + ' · ' : '') + 'KABUPATEN ' + e(kab.kab.toUpperCase()) + ' · PROVINSI ' + e(String(kab.provinsi).toUpperCase()) + '</h2><div class="jarak"></div>' +
+      '<table class="bingkai kecil"><tr><th>NO</th><th>NAMA ' + J.besar + '</th><th>KETUA ' + J.besar + '</th><th>NIK</th><th>JALAN</th><th>DESA</th><th>KECAMATAN</th><th>KABUPATEN</th><th>PROVINSI</th><th>BANK</th><th>NO REKENING</th><th>NAMA REKENING</th><th>NOMOR NPWP (' + J.npwp + ')</th></tr>' +
+      daftar.map(function (p, i) { return '<tr><td class="c">' + (i + 1) + '</td><td>' + e(J.campur ? lembaga(p.poktan, p.jenis_kel) : p.poktan) + '</td><td>' + e(p.ketua) + '</td><td>' + e(p.nik_ketua) + '</td><td>' + e(p.jalan) + '</td><td>' + e(p.desa) + '</td><td>' + e(p.kec) + '</td><td>' + e(p.kab) + '</td><td>' + e(kab.provinsi) + '</td><td>' + e(p.bank) + '</td><td>' + e(p.norek) + '</td><td>' + e(p.namarek) + '</td><td>' + npwpTeks(p) + '</td></tr>'; }).join('') +
       '</table></div>';
   }
 
+  // urutan berkas SPJ HOK: 0 Cover … 13 Data Poktan (daftar periksa tanpa nomor)
+  function F13satu(F) { return F13(F.kab, null, [F.p]); }
   var DAFTAR = [
-    ['F00', 'Daftar periksa dokumen (sampul berkas)', F00],
-    ['F01', 'Surat Perjanjian Kerjasama (SPK)', F01],
-    ['F02', 'SPTJM', F02],
-    ['F03', 'RUKK', F03],
-    ['F05', 'Daftar hadir pekerja (semua periode)', F05],
-    ['F06', 'Laporan pelaksanaan kegiatan', F06],
-    ['F07', 'Berita acara pemeriksaan', F07],
-    ['F08', 'BAST poktan ke PPK', F08],
-    ['F09', 'Tanda terima pembayaran pekerja', F09],
-    ['F10', 'Dokumentasi foto geotag', F10],
-    ['F11', 'Kwitansi', F11],
-    ['F12', 'Foto KTP ketua, buku rekening & NPWP', F12],
-    ['F14', 'Dokumentasi KTP petani pekerja (8 per halaman)', F14]
+    ['C00', '0. Cover berkas SPJ HOK', C00],
+    ['F00', 'Daftar periksa dokumen', F00],
+    ['F01', '1. Surat Perjanjian Kerjasama (SPK)', F01],
+    ['F02', '2. SPTJM', F02],
+    ['F03', '3. RUKK', F03],
+    ['F05', '4. Daftar hadir pekerja (semua periode)', F05],
+    ['F06', '5. Laporan pelaksanaan kegiatan', F06],
+    ['F07', '6. Berita acara pemeriksaan', F07],
+    ['F08', '7. BAST poktan ke PPK', F08],
+    ['F09', '8. Tanda terima pembayaran pekerja', F09],
+    ['F11', '9. Kwitansi', F11],
+    ['F10', '10. Dokumentasi foto geotag (1 halaman per tahap)', F10],
+    ['F12', '11. Foto KTP ketua, buku rekening & NPWP', F12],
+    ['F14', '12. Dokumentasi KTP petani pekerja (8 per halaman)', F14],
+    ['F13', '13. Data poktan', F13satu]
   ];
 
   function cetakHTML(html, judul) {
@@ -346,5 +362,5 @@ var FORM = (function () {
     });
   }
 
-  return { fotoKtpPekerja: fotoKtpPekerja, npwpTeks: npwpTeks, lembaga: lembaga, lembagaKalimat: lembagaKalimat, tglPelaksanaan: tglPelaksanaan, DAFTAR: DAFTAR, F13: F13, cetakHTML: cetakHTML, F: { F00: F00, F01: F01, F02: F02, F03: F03, F05: F05, F06: F06, F07: F07, F08: F08, F09: F09, F10: F10, F11: F11, F12: F12, F14: F14 } };
+  return { sebutanDaftar: sebutanDaftar, fotoKtpPekerja: fotoKtpPekerja, npwpTeks: npwpTeks, lembaga: lembaga, lembagaKalimat: lembagaKalimat, tglPelaksanaan: tglPelaksanaan, DAFTAR: DAFTAR, F13: F13, cetakHTML: cetakHTML, F: { C00: C00, F00: F00, F01: F01, F02: F02, F03: F03, F05: F05, F06: F06, F07: F07, F08: F08, F09: F09, F10: F10, F11: F11, F12: F12, F14: F14, F13: F13satu } };
 })();
