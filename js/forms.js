@@ -155,7 +155,7 @@ var FORM = (function () {
       for (var b = 0; b < nHal; b++) {
         var rows = pek.slice(b * BARIS, (b + 1) * BARIS);
         out += '<div class="hal lanskap">' + kopWilayah(F, 'DAFTAR HADIR') +
-          '<table class="kv" style="margin-top:4pt"><tr><td class="l" style="width:16%">' + JK(F).besar + '</td><td class="t">:</td><td style="width:34%">' + isi(F.p.poktan) + '</td><td class="l" style="width:16%">JENIS PEKERJAAN</td><td class="t">:</td><td>' + e(F.keg.jenis) + '</td></tr>' +
+          '<table class="kv kv-hadir" style="margin-top:4pt"><colgroup><col style="width:17%"><col style="width:2%"><col style="width:33%"><col style="width:16%"><col style="width:2%"><col style="width:30%"></colgroup><tr><td class="l">' + JK(F).besar + '</td><td class="t">:</td><td>' + isi(F.p.poktan) + '</td><td class="l">JENIS PEKERJAAN</td><td class="t">:</td><td>' + e(F.keg.jenis) + '</td></tr>' +
           '<tr><td class="l">DESA / KECAMATAN</td><td class="t">:</td><td>' + isi(F.p.desa) + ' / ' + isi(F.p.kec) + '</td><td class="l">LUAS AREA</td><td class="t">:</td><td>' + luasTeks(F.p.luas) + ' · periode ' + (a + 1) + '/' + nPer + (nHal > 1 ? ' · halaman ' + (b + 1) + '/' + nHal : '') + '</td></tr></table>' +
           '<table class="bingkai kecil"><tr><th rowspan="2" style="width:3%">NO</th><th rowspan="2" style="width:17%">NAMA LENGKAP</th><th rowspan="2" style="width:13%">NIK</th><th colspan="' + HARI + '">WAKTU PELAKSANAAN PEKERJAAN</th><th rowspan="2" style="width:5%">TOTAL HARI</th></tr><tr>' +
           tgl.map(function (d) { return '<th>' + (d ? U.namaHari(d).slice(0, 3) + '<br>' + d.slice(8) + '/' + d.slice(5, 7) : '') + '</th>'; }).join('') + '</tr>' +
